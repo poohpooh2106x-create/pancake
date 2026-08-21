@@ -38,19 +38,23 @@ export function createApp(): Application {
   const publicDir = path.join(__dirname, 'public');
   app.use(express.static(publicDir));
 
-  // REST API Routes
+  // REST API Routes (Support both /api/path and /path for serverless function compatibility)
   app.use('/api/health', healthRoutes);
+  app.use('/health', healthRoutes);
+
   app.use('/api/webhooks', webhookRoutes);
+  app.use('/webhooks', webhookRoutes);
+
   app.use('/api/customers', customerRoutes);
+  app.use('/customers', customerRoutes);
 
   // Single Page App Fallback for non-API routes
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) {
+    if (req.path.startsWith('/api') || req.path.startsWith('/webhooks') || req.path.startsWith('/health')) {
       return next();
     }
     res.sendFile(path.join(publicDir, 'index.html'), (err) => {
       if (err) {
-        // Fallback for root API info if static folder is not present
         res.json({
           name: 'Pancake Customer Data Extraction & Management API',
           status: 'running',
