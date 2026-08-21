@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pancake Sales & Lead Distribution CRM</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              400: '#fb923c',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+            },
+            dark: {
+              800: '#1e293b',
+              850: '#172033',
+              900: '#0f172a',
+              950: '#090d16',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body class="bg-dark-900 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- Top Navigation Header -->
+  <!-- ========================================================================= -->
+  <header class="border-b border-slate-800/80 bg-dark-950/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <span class="text-xl">🚛</span>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="font-bold text-lg text-white tracking-tight">Pancake Sales CRM</h1>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">Auto Phone Extractor</span>
+          </div>
+          <p class="text-xs text-slate-400">บันทึกเฉพาะลูกค้าที่ให้เบอร์โทร & จ่ายงานให้เซลล์</p>
+        </div>
+      </div>
+
+      <!-- Webhook URL & System Status -->
+      <div class="hidden md:flex items-center space-x-3">
+        <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span>
+          <span id="db-status-badge">ระบบกำลังดักจับเบอร์โทรลูกค้า</span>
+        </div>
+
+        <div class="flex items-center bg-dark-800/90 border border-slate-700/70 rounded-lg px-3 py-1.5 text-xs text-slate-300">
+          <i data-lucide="webhook" class="w-3.5 h-3.5 mr-2 text-brand-400"></i>
+          <span class="font-mono text-slate-300 mr-2">/api/webhooks/pancake</span>
+          <button id="copy-webhook-btn" class="text-slate-400 hover:text-white transition-colors" title="Copy Endpoint">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <button id="btn-open-simulator" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-600/30 hover:text-white transition-all text-xs font-medium">
+          <i data-lucide="play-circle" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">จำลองแชทลูกค้า (Simulator)</span>
+        </button>
+
+        <button id="btn-sync-sheets" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-600/30 hover:text-white transition-all text-xs font-medium">
+          <i data-lucide="sheet" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">ซิงค์ Google Sheets</span>
+        </button>
+
+        <button id="btn-export-csv" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white transition-all text-xs font-medium">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Export Excel</span>
+        </button>
+
+        <button id="btn-clear-all" class="p-2 rounded-lg bg-rose-950/40 border border-rose-900/60 text-rose-400 hover:bg-rose-900/50 hover:text-rose-200 transition-all text-xs font-medium" title="ล้างข้อมูลทั้งหมดในตาราง">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- Main Application Container -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- KPI Metric Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- Metric 1: Total Verified Phone Leads -->
+      <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400">ลูกค้าที่ได้เบอร์โทรแล้ว (Leads)</p>
+            <h3 id="stat-total-phones" class="text-2xl font-bold text-emerald-400 mt-1">0</h3>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <i data-lucide="phone-call" class="w-6 h-6"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center text-xs text-slate-400">
+          <span class="text-emerald-400 font-medium mr-1.5 flex items-center"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 mr-0.5"></i> ตรวจสอบเบอร์แล้ว</span>
+          <span>นับเฉพาะคนที่ให้เบอร์</span>
+        </div>
+      </div>
+
+      <!-- Metric 2: Assigned Leads -->
+      <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400">เคสที่จ่ายงานให้เซลล์แล้ว</p>
+            <h3 id="stat-total-assigned" class="text-2xl font-bold text-white mt-1">0</h3>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+            <i data-lucide="user-check" class="w-6 h-6"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center text-xs text-slate-400">
+          <span class="text-blue-400 font-medium mr-1.5">8 เซลล์ในทีม</span>
+          <span>พร้อมส่งใน LINE</span>
+        </div>
+      </div>
+
+      <!-- Metric 3: Pending Assignment -->
+      <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400">เคสรอเลือกเซลล์</p>
+            <h3 id="stat-pending-assigned" class="text-2xl font-bold text-amber-400 mt-1">0</h3>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <i data-lucide="clock" class="w-6 h-6"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center text-xs text-slate-400">
+          <span class="text-amber-400 font-medium mr-1.5">Action required</span>
+          <span>แอดมินเลือกเซลล์รับเคส</span>
+        </div>
+      </div>
+
+      <!-- Metric 4: Messages Processed -->
+      <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400">ข้อความที่สแกนหาเบอร์</p>
+            <h3 id="stat-total-messages" class="text-2xl font-bold text-purple-400 mt-1">0</h3>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+            <i data-lucide="message-square-text" class="w-6 h-6"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center text-xs text-slate-400">
+          <span class="text-purple-400 font-medium mr-1.5">AI & Regex</span>
+          <span>สแกนตรวจจับอัตโนมัติ</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Visual Analytics & Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Chart 1: Vehicle Interest (หัวลาก, ตู้10, หาง, ดั้ม, ฯลฯ) -->
+      <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-slate-200 flex items-center">
+            <i data-lucide="truck" class="w-4 h-4 mr-2 text-brand-400"></i>
+            สัดส่วนรถที่ลูกค้าสนใจ (มีเบอร์โทร)
+          </h3>
+          <span class="text-xs text-slate-400">หัวลาก/ตู้10/หาง/ดั้ม</span>
+        </div>
+        <div class="h-52 flex items-center justify-center relative">
+          <canvas id="vehicleChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 2: Sales Team Distribution -->
+      <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-slate-200 flex items-center">
+            <i data-lucide="user-check" class="w-4 h-4 mr-2 text-emerald-400"></i>
+            การกระจายเคสให้เซลล์ (8 คน)
+          </h3>
+          <span class="text-xs text-slate-400">จำนวนเคสต่อคน</span>
+        </div>
+        <div class="h-52 flex items-center justify-center relative">
+          <canvas id="salesChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Sales Team Quick Reference -->
+      <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+        <div>
+          <h3 class="text-sm font-semibold text-slate-200 flex items-center mb-3">
+            <i data-lucide="badge-check" class="w-4 h-4 mr-2 text-indigo-400"></i>
+            ทีมเซลล์ที่รับผิดชอบ (8 คน)
+          </h3>
+          
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-950 text-cyan-400 border border-cyan-700">วุธ</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-วุธ">0</span>
+            </div>
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-950 text-orange-400 border border-orange-700">อั๋น</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-อั๋น">0</span>
+            </div>
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-stone-800 text-stone-300 border border-stone-600">ท้อป</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-ท้อป">0</span>
+            </div>
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-700">จิ๊บ</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-จิ๊บ">0</span>
+            </div>
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-950 text-amber-500 border border-amber-700">เกด</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-เกด">0</span>
+            </div>
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-950 text-purple-400 border border-purple-700">ม่า</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-ม่า">0</span>
+            </div>
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-950 text-rose-400 border border-rose-700">ปุ๊ก</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-ปุ๊ก">0</span>
+            </div>
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-950 text-teal-400 border border-teal-700">เฟิร์น</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-เฟิร์น">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- Customer CRM Data Table (Exact Spreadsheet Layout) -->
+    <!-- ======================================================================= -->
+    <div class="glass-card rounded-2xl overflow-hidden shadow-xl border border-slate-800/80">
+      
+      <!-- Table Header & Controls Bar -->
+      <div class="p-5 border-b border-slate-800/80 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        
+        <!-- Left: Source Tabs (Matching Sheet Bottom Tabs) -->
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <h2 class="text-base font-bold text-white flex items-center">
+            <i data-lucide="table" class="w-5 h-5 mr-2 text-brand-500"></i>
+            ตารางรับเคสลูกค้า (เฉพาะคนที่มีเบอร์โทร)
+          </h2>
+
+          <!-- Source Filter Chips -->
+          <div class="flex flex-wrap items-center bg-dark-900/80 p-1 rounded-xl border border-slate-800 text-xs">
+            <button class="source-tab px-3 py-1.5 rounded-lg font-medium transition-all bg-brand-500 text-white" data-source="ALL">ทั้งหมด</button>
+            <button class="source-tab px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all" data-source="FB เคพีศรีราชา">FB เคพีศรีราชา</button>
+            <button class="source-tab px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all" data-source="TikTokเคพีศรีราชา">TikTok</button>
+            <button class="source-tab px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all" data-source="LOA เคพี">LOA เคพี</button>
+            <button class="source-tab px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all" data-source="FB เฮียตั้มรถตัด">FB เฮียตั้มรถตัด</button>
+          </div>
+        </div>
+
+        <!-- Right: Search Bar & Refresh -->
+        <div class="flex items-center space-x-3">
+          
+          <!-- Search Input with Clear Button -->
+          <div class="relative w-full sm:w-64">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input
+              type="text"
+              id="customer-search-input"
+              placeholder="ค้นหาชื่อ, เบอร์โทร, รถ..."
+              class="w-full pl-9 pr-8 py-2 text-xs rounded-xl bg-dark-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-colors"
+            />
+            <button id="btn-clear-search" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-200 hidden" title="ล้างคำค้นหา">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+
+          <!-- Refresh Button -->
+          <button id="btn-refresh-table" class="p-2 rounded-xl bg-dark-900 border border-slate-700/80 text-slate-400 hover:text-white hover:border-slate-600 transition-all" title="Refresh Table">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Table Component (Columns A-G matching Google Sheets) -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-dark-950/70 text-slate-400 uppercase tracking-wider text-[11px] border-b border-slate-800">
+            <tr>
+              <th class="px-4 py-3.5 font-semibold">วันที่รับ</th>
+              <th class="px-3 py-3.5 font-semibold">เวลา</th>
+              <th class="px-4 py-3.5 font-semibold">ที่มา</th>
+              <th class="px-4 py-3.5 font-semibold">ชื่อลูกค้า</th>
+              <th class="px-4 py-3.5 font-semibold">เบอร์โทร</th>
+              <th class="px-4 py-3.5 font-semibold">รถที่สนใจ</th>
+              <th class="px-4 py-3.5 font-semibold">เซลล์ที่รับ</th>
+              <th class="px-4 py-3.5 font-semibold text-right">ส่งต่อ / จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="customer-table-body" class="divide-y divide-slate-800/60">
+            <tr>
+              <td colspan="8" class="px-5 py-12 text-center text-slate-500">
+                <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2 text-brand-500"></i>
+                <span>กำลังโหลดข้อมูลลูกค้า...</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table Pagination Bar -->
+      <div class="p-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+        <span id="pagination-summary">แสดง 0 จาก 0 รายการ</span>
+        <div class="flex items-center space-x-2">
+          <button id="btn-prev-page" class="px-3 py-1.5 rounded-lg bg-dark-900 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            ก่อนหน้า
+          </button>
+          <span id="pagination-current-page" class="px-2 font-medium text-slate-200">1</span>
+          <button id="btn-next-page" class="px-3 py-1.5 rounded-lg bg-dark-900 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            ถัดไป
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- Customer Detail & Chat Timeline Modal -->
+  <!-- ========================================================================= -->
+  <div id="customer-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-dark-850 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div id="modal-avatar-container" class="w-12 h-12 rounded-xl bg-brand-500/20 text-brand-400 font-bold text-lg flex items-center justify-center border border-brand-500/30">
+            C
+          </div>
+          <div>
+            <h3 id="modal-customer-name" class="font-bold text-base text-white">Customer Name</h3>
+            <p id="modal-pancake-id" class="text-xs font-mono text-slate-400">ID: cust_xxxx</p>
+          </div>
+        </div>
+        <button id="btn-close-modal" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+        
+        <!-- Contact & Phone Numbers Card -->
+        <div class="p-4 rounded-xl bg-dark-900/80 border border-slate-800 space-y-3">
+          <h4 class="font-semibold text-slate-200 flex items-center">
+            <i data-lucide="phone" class="w-4 h-4 mr-2 text-emerald-400"></i>
+            เบอร์โทรศัพท์ที่สกัดได้จากแชท
+          </h4>
+          <div id="modal-phones-list" class="space-y-2">
+          </div>
+        </div>
+
+        <!-- Inbound Chat Timeline with Message Deletion -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-semibold text-slate-200 flex items-center">
+              <i data-lucide="messages-square" class="w-4 h-4 mr-2 text-amber-400"></i>
+              ประวัติการสนทนาใน Pancake Chat (ไฮไลท์เบอร์โทร & รถ)
+            </h4>
+            <span class="text-[11px] text-slate-500">สามารถกดลบข้อความที่ไม่ต้องการได้</span>
+          </div>
+          <div id="modal-messages-timeline" class="space-y-3 max-h-56 overflow-y-auto pr-1">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-800 bg-dark-900/60 flex items-center justify-between">
+        <button id="btn-delete-current-customer" class="px-3 py-1.5 rounded-xl bg-rose-950/40 border border-rose-900/60 text-rose-400 hover:bg-rose-900/50 text-xs font-medium transition-all flex items-center space-x-1">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          <span>ลบลูกค้าคนนี้</span>
+        </button>
+        <button id="btn-close-modal-footer" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-medium transition-all">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- Webhook Simulator Modal (1-Click Testing Console) -->
+  <!-- ========================================================================= -->
+  <div id="simulator-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-dark-850 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+            <i data-lucide="play-circle" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-white">จำลองแชทลูกค้า Pancake (Simulator)</h3>
+            <p class="text-xs text-slate-400">ทดสอบการส่ง Webhook แชทถามซื้อรถ และทดสอบการสกัดเบอร์โทร</p>
+          </div>
+        </div>
+        <button id="btn-close-simulator" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
+        
+        <!-- Preset Scenario Selector -->
+        <div>
+          <label class="block font-semibold text-slate-200 mb-2">เลือกตัวอย่างบทสนทนาจำลอง:</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button class="preset-btn p-2.5 text-left rounded-xl bg-dark-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-950/20 transition-all active-preset" data-preset="tractor">
+              <span class="font-medium text-white block">1. สนใจหัวลาก (เสกสรร)</span>
+              <span class="text-[11px] text-slate-400">"สนใจหัวลากครับ เบอร์ 063-9292339"</span>
+            </button>
+
+            <button class="preset-btn p-2.5 text-left rounded-xl bg-dark-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-950/20 transition-all" data-preset="box10">
+              <span class="font-medium text-white block">2. สนใจตู้10 (พี่โอ๊ก ชุมแพ)</span>
+              <span class="text-[11px] text-slate-400">"ขอรายละเอียดตู้10 หน่อยครับ โทร 083-5469139"</span>
+            </button>
+
+            <button class="preset-btn p-2.5 text-left rounded-xl bg-dark-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-950/20 transition-all" data-preset="trailer">
+              <span class="font-medium text-white block">3. สนใจหางพ่วง (อุดม)</span>
+              <span class="text-[11px] text-slate-400">"หางก้างยังมีมั้ยครับ เบอร์ 087-1549523"</span>
+            </button>
+
+            <button class="preset-btn p-2.5 text-left rounded-xl bg-dark-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-950/20 transition-all" data-preset="dump">
+              <span class="font-medium text-white block">4. สนใจรถดั้ม (กิตติศักดิ์)</span>
+              <span class="text-[11px] text-slate-400">"สนใจดั้มครับ โทร 098-4088872"</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- JSON Payload Editor -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="font-semibold text-slate-200">Webhook JSON Payload:</label>
+            <span class="text-[11px] text-slate-400">POST /api/webhooks/pancake</span>
+          </div>
+          <textarea
+            id="simulator-payload-editor"
+            rows="8"
+            class="w-full font-mono text-[11px] p-3 rounded-xl bg-dark-900 border border-slate-800 text-emerald-400 focus:outline-none focus:border-indigo-500 transition-colors"
+          ></textarea>
+        </div>
+
+        <!-- Response Status Box -->
+        <div id="simulator-response-box" class="p-3 rounded-xl bg-dark-900 border border-slate-800 hidden font-mono text-[11px]">
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-800 bg-dark-900/60 flex items-center justify-between">
+        <span class="text-xs text-slate-400">ระบบจะประมวลผลและสกัดเบอร์โทรให้อัตโนมัติ</span>
+        <div class="flex items-center space-x-2">
+          <button id="btn-close-simulator-footer" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-medium transition-all">
+            ยกเลิก
+          </button>
+          <button id="btn-send-simulated-webhook" class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-brand-600 text-white text-xs font-semibold hover:opacity-90 shadow-lg shadow-indigo-500/20 transition-all flex items-center space-x-1.5">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            <span>ส่งแชททดสอบ</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
+
+  <!-- Application Logic -->
+  <script src="/js/app.js"></script>
+</body>
+</html>
+<script async src="/.netlify/scripts/hud" data-nf-variant="public" data-netlify-site-id="d82e993f-c996-48c4-a7d7-555a045d545b" data-app-host="app.netlify.com"></script>
