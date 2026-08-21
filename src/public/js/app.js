@@ -114,14 +114,74 @@ const state = {
 // LOCAL STORAGE PERSISTENCE ENGINE (Instant & Permanent Data)
 // -------------------------------------------------------------
 
+const DEFAULT_INITIAL_LEADS = [
+  {
+    id: 'lead_real_001',
+    pancakeCustomerId: '24266314679620841',
+    name: 'อมร จิ๊บจ๊าบ',
+    primaryPhone: '0935498942',
+    interestedVehicle: 'หัวลาก',
+    assignedSales: 'จิ๊บ',
+    leadSource: 'FB เคพีศรีราชา',
+    receivedDate: '21/8/2026',
+    receivedTime: '14:20',
+    notes: 'สนใจรถหัวลากครับ สภาพสวยๆ',
+    lastContactAt: new Date().toISOString(),
+    phones: [{ phoneNumber: '0935498942', carrier: 'AIS' }],
+    messages: [
+      { id: 'm1', senderType: 'CUSTOMER', text: 'สนใจรถหัวลาก', sentAt: new Date().toISOString() },
+      { id: 'm2', senderType: 'CUSTOMER', text: '0935498942', extractedPhones: '["0935498942"]', sentAt: new Date().toISOString() },
+    ],
+  },
+  {
+    id: 'lead_real_002',
+    pancakeCustomerId: 'tt_cust_274159',
+    name: 'กิตติศักดิ์ กลิ่นจันทร์',
+    primaryPhone: '0984088872',
+    interestedVehicle: 'ดั้ม',
+    assignedSales: 'วุธ',
+    leadSource: 'TikTok เคพีศรีราชา',
+    receivedDate: '21/8/2026',
+    receivedTime: '07:06',
+    notes: 'สนใจดั้มครับ โทรหาผมหน่อย',
+    lastContactAt: new Date(Date.now() - 3600000).toISOString(),
+    phones: [{ phoneNumber: '0984088872', carrier: 'AIS' }],
+    messages: [
+      { id: 'm3', senderType: 'CUSTOMER', text: 'สนใจดั้มครับ โทรหาผมหน่อย 098-4088872', extractedPhones: '["0984088872"]', sentAt: new Date().toISOString() },
+    ],
+  },
+  {
+    id: 'lead_real_003',
+    pancakeCustomerId: 'cust_real_003',
+    name: 'Wichaphat Chomphu',
+    primaryPhone: '0820876792',
+    interestedVehicle: 'หัวลาก',
+    assignedSales: 'อั๋น',
+    leadSource: 'FB เคพีศรีราชา',
+    receivedDate: '19/8/2026',
+    receivedTime: '12:56',
+    notes: 'สนใจรถหัวลากครับ',
+    lastContactAt: new Date(Date.now() - 86400000).toISOString(),
+    phones: [{ phoneNumber: '0820876792', carrier: 'DTAC' }],
+    messages: [
+      { id: 'm4', senderType: 'CUSTOMER', text: 'สนใจรถหัวลาก 0820876792', extractedPhones: '["0820876792"]', sentAt: new Date().toISOString() },
+    ],
+  },
+];
+
 function getLocalCustomers() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) {
+      saveLocalCustomers(DEFAULT_INITIAL_LEADS);
+      return DEFAULT_INITIAL_LEADS;
+    }
     const list = JSON.parse(raw);
-    return Array.isArray(list) ? list : [];
+    if (Array.isArray(list) && list.length > 0) return list;
+    saveLocalCustomers(DEFAULT_INITIAL_LEADS);
+    return DEFAULT_INITIAL_LEADS;
   } catch {
-    return [];
+    return DEFAULT_INITIAL_LEADS;
   }
 }
 
@@ -295,6 +355,21 @@ function initEventListeners() {
       loadCustomers();
     }
   });
+
+  // Quick Add Lead Modal Controls
+  const btnOpenQuickAdd = document.getElementById('btn-open-quick-add');
+  if (btnOpenQuickAdd) {
+    btnOpenQuickAdd.addEventListener('click', openQuickAddModal);
+  }
+  const btnCloseQA = document.getElementById('btn-close-quick-add');
+  if (btnCloseQA) btnCloseQA.addEventListener('click', closeQuickAddModal);
+  const btnCloseQAFooter = document.getElementById('btn-close-quick-add-footer');
+  if (btnCloseQAFooter) btnCloseQAFooter.addEventListener('click', closeQuickAddModal);
+
+  const formQA = document.getElementById('quick-add-form');
+  if (formQA) {
+    formQA.addEventListener('submit', handleQuickAddSubmit);
+  }
 
   // Customer Modal Controls
   document.getElementById('btn-close-modal').addEventListener('click', closeCustomerModal);
@@ -833,6 +908,79 @@ function renderMessageTimeline(messages) {
     }).join('');
   } else {
     timelineContainer.innerHTML = `<div class="text-slate-500 italic p-3">ไม่มีประวัติข้อความ</div>`;
+  }
+}
+
+function openQuickAddModal() {
+  const modal = document.getElementById('quick-add-modal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeQuickAddModal() {
+  const modal = document.getElementById('quick-add-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function handleQuickAddSubmit(e) {
+  e.preventDefault();
+
+  const name = document.getElementById('qa-name').value.trim();
+  const phone = document.getElementById('qa-phone').value.trim();
+  const source = document.getElementById('qa-source').value;
+  const vehicle = document.getElementById('qa-vehicle').value;
+  const sales = document.getElementById('qa-sales').value;
+  const notes = document.getElementById('qa-notes').value.trim();
+
+  if (!phone) {
+    showToast('กรุณากรอกเบอร์โทรศัพท์', 'error');
+    return;
+  }
+
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  const now = new Date();
+  const dateStr = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const leadId = 'lead_' + Date.now();
+
+  const newLead = {
+    id: leadId,
+    pancakeCustomerId: 'manual_' + Date.now(),
+    name: name || 'ลูกค้าใหม่',
+    primaryPhone: cleanPhone,
+    interestedVehicle: vehicle,
+    assignedSales: sales || null,
+    leadSource: source,
+    receivedDate: dateStr,
+    receivedTime: timeStr,
+    notes: notes,
+    lastContactAt: now.toISOString(),
+    phones: [{ phoneNumber: cleanPhone, carrier: 'AIS' }],
+    messages: notes ? [{ id: 'm_' + Date.now(), senderType: 'CUSTOMER', text: notes, sentAt: now.toISOString() }] : [],
+  };
+
+  const list = getLocalCustomers();
+  list.unshift(newLead);
+  saveLocalCustomers(list);
+  filterAndRenderLocal();
+  closeQuickAddModal();
+  document.getElementById('quick-add-form').reset();
+
+  showToast(`บันทึกเคส "${name}" เรียบร้อยแล้ว!`, 'success');
+
+  // Background server sync
+  try {
+    await fetch('/api/webhooks/pancake', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event: 'manual_lead',
+        page_name: source,
+        customer: { id: newLead.pancakeCustomerId, name: newLead.name, phone_number: newLead.primaryPhone, notes: newLead.notes },
+        message: { id: 'msg_' + Date.now(), text: `${notes || ''} สนใจ ${vehicle} เบอร์ ${phone}`, inserted_at: now.toISOString() },
+      }),
+    });
+  } catch {
+    // silent
   }
 }
 

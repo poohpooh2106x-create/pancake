@@ -82,14 +82,14 @@
 
       <!-- Quick Action Buttons -->
       <div class="flex items-center space-x-2 sm:space-x-3">
-        <button id="btn-open-simulator" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-600/30 hover:text-white transition-all text-xs font-medium">
-          <i data-lucide="play-circle" class="w-4 h-4"></i>
-          <span class="hidden sm:inline">จำลองแชทลูกค้า (Simulator)</span>
+        <button id="btn-open-quick-add" class="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-600/30 transition-all text-xs font-semibold">
+          <i data-lucide="user-plus" class="w-4 h-4"></i>
+          <span>+ เพิ่มเคสใหม่</span>
         </button>
 
-        <button id="btn-sync-sheets" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-600/30 hover:text-white transition-all text-xs font-medium">
-          <i data-lucide="sheet" class="w-4 h-4"></i>
-          <span class="hidden sm:inline">ซิงค์ Google Sheets</span>
+        <button id="btn-open-simulator" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-600/30 hover:text-white transition-all text-xs font-medium">
+          <i data-lucide="play-circle" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">จำลองแชท (Simulator)</span>
         </button>
 
         <button id="btn-export-csv" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white transition-all text-xs font-medium">
@@ -502,6 +502,103 @@
           </button>
         </div>
       </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- Quick Add Lead Modal -->
+  <!-- ========================================================================= -->
+  <div id="quick-add-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden animate-in fade-in duration-150">
+    <div class="glass-card rounded-2xl max-w-lg w-full overflow-hidden border border-slate-700 shadow-2xl flex flex-col">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-dark-900/80">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400">
+            <i data-lucide="user-plus" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-100 text-base">เพิ่มเคสลูกค้าใหม่ด่วน</h3>
+            <p class="text-xs text-slate-400">บันทึกเบอร์โทร เลือกรุ่นรถ และจ่ายงานให้เซลล์</p>
+          </div>
+        </div>
+        <button id="btn-close-quick-add" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body Form -->
+      <form id="quick-add-form" class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">👤 ชื่อลูกค้า <span class="text-rose-400">*</span></label>
+          <input type="text" id="qa-name" required placeholder="เช่น อมร จิ๊บจ๊าบ" class="w-full px-3.5 py-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-brand-500 transition-colors" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">📞 เบอร์โทรศัพท์ <span class="text-rose-400">*</span></label>
+            <input type="text" id="qa-phone" required placeholder="เช่น 0935498942" class="w-full px-3.5 py-2 rounded-xl bg-dark-900 border border-slate-800 font-mono text-emerald-400 text-sm focus:outline-none focus:border-brand-500 transition-colors" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">📱 ที่มา / ช่องทาง</label>
+            <select id="qa-source" class="w-full px-3.5 py-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-200 text-sm focus:outline-none focus:border-brand-500 transition-colors">
+              <option value="FB เคพีศรีราชา">FB เคพีศรีราชา</option>
+              <option value="LOA เคพี">LOA เคพี</option>
+              <option value="TikTok เคพีศรีราชา">TikTok เคพีศรีราชา</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">🚛 รุ่นรถที่สนใจ</label>
+            <select id="qa-vehicle" class="w-full px-3.5 py-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-200 text-sm focus:outline-none focus:border-brand-500 transition-colors">
+              <option value="หัวลาก">หัวลาก</option>
+              <option value="ตู้10">ตู้10</option>
+              <option value="หาง">หาง</option>
+              <option value="หางพ่วง">หางพ่วง</option>
+              <option value="หางก้าง">หางก้าง</option>
+              <option value="หางเรียบ">หางเรียบ</option>
+              <option value="ดั้ม">ดั้ม</option>
+              <option value="6ล้อ">6ล้อ</option>
+              <option value="10ล้อ">10ล้อ</option>
+              <option value="รถตัด">รถตัด</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">👨‍💼 เซลล์ผู้รับผิดชอบ</label>
+            <select id="qa-sales" class="w-full px-3.5 py-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-200 text-sm font-bold focus:outline-none focus:border-brand-500 transition-colors">
+              <option value="">-- ยังไม่จ่ายงาน --</option>
+              <option value="วุธ">วุธ</option>
+              <option value="อั๋น">อั๋น</option>
+              <option value="ท้อป">ท้อป</option>
+              <option value="จิ๊บ">จิ๊บ</option>
+              <option value="เกด">เกด</option>
+              <option value="ม่า">ม่า</option>
+              <option value="ปุ๊ก">ปุ๊ก</option>
+              <option value="เฟิร์น">เฟิร์น</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">💬 ข้อความแชท / หมายเหตุ</label>
+          <textarea id="qa-notes" rows="2" placeholder="เช่น สนใจรถหัวลาก สภาพพร้อมใช้งาน" class="w-full px-3.5 py-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-brand-500 transition-colors"></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end space-x-2">
+          <button type="button" id="btn-close-quick-add-footer" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-medium transition-all">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-brand-600/30 transition-all flex items-center space-x-1.5">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>บันทึกลงระบบทันที</span>
+          </button>
+        </div>
+      </form>
 
     </div>
   </div>
