@@ -1,4 +1,4 @@
-import { prisma } from '../db/prisma';
+import { prisma, ensureDatabaseSchema } from '../db/prisma';
 import { ParsedCustomerData, CustomerStats } from '../types/customer.types';
 import { logger } from '../utils/logger';
 import { GoogleSheetsService } from './google-sheets.service';
@@ -9,6 +9,8 @@ export class CustomerService {
    * STRICT PHONE RULE: Only create/update CRM lead once a valid phone number is detected!
    */
   public static async processAndSaveCustomer(data: ParsedCustomerData): Promise<any> {
+    await ensureDatabaseSchema();
+
     const {
       pancakeCustomerId,
       pageId,
@@ -216,6 +218,7 @@ export class CustomerService {
    * Delete a single customer
    */
   public static async deleteCustomer(customerId: string): Promise<boolean> {
+    await ensureDatabaseSchema();
     try {
       await prisma.customer.delete({
         where: { id: customerId },
@@ -231,6 +234,7 @@ export class CustomerService {
    * Clear all customers & messages from database
    */
   public static async clearAllCustomers(): Promise<number> {
+    await ensureDatabaseSchema();
     try {
       const deleteResult = await prisma.customer.deleteMany({});
       return deleteResult.count;
@@ -244,6 +248,7 @@ export class CustomerService {
    * Delete a specific chat message
    */
   public static async deleteMessage(messageId: string): Promise<boolean> {
+    await ensureDatabaseSchema();
     try {
       await prisma.message.delete({
         where: { id: messageId },
@@ -266,6 +271,7 @@ export class CustomerService {
       leadSource?: string;
     }
   ) {
+    await ensureDatabaseSchema();
     const updated = await prisma.customer.update({
       where: { id: customerId },
       data: {
@@ -299,6 +305,8 @@ export class CustomerService {
     interestedVehicle?: string;
     leadSource?: string;
   }) {
+    await ensureDatabaseSchema();
+
     const page = Math.max(1, params.page || 1);
     const limit = Math.min(100, Math.max(1, params.limit || 20));
     const skip = (page - 1) * limit;
@@ -345,90 +353,118 @@ export class CustomerService {
       ];
     }
 
-    const [total, customers] = await Promise.all([
-      prisma.customer.count({ where }),
-      prisma.customer.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { lastContactAt: 'desc' },
-        include: {
-          phones: true,
-          _count: { select: { messages: true, orders: true } },
-        },
-      }),
-    ]);
+    try {
+      const [total, customers] = await Promise.all([
+        prisma.customer.count({ where }),
+        prisma.customer.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { lastContactAt: 'desc' },
+          include: {
+            phones: true,
+            _count: { select: { messages: true, orders: true } },
+          },
+        }),
+      ]);
 
-    return {
-      data: customers,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+      return {
+        data: customers,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit) || 1,
+        },
+      };
+    } catch (err: any) {
+      logger.error({ error: err.message }, 'Error in getCustomers, returning empty');
+      return {
+        data: [],
+        pagination: {
+          page: 1,
+          limit,
+          total: 0,
+          totalPages: 1,
+        },
+      };
+    }
   }
 
   /**
    * Get CRM summary statistics (Only counts leads with phone numbers)
    */
   public static async getStats(): Promise<CustomerStats> {
-    const [
-      totalWithPhones,
-      totalMessages,
-      totalOrders,
-      platformCounts,
-      vehicleCounts,
-      salesCounts,
-    ] = await Promise.all([
-      prisma.customer.count({ where: { primaryPhone: { not: null } } }),
-      prisma.message.count(),
-      prisma.order.count(),
-      prisma.customer.groupBy({
-        by: ['platform'],
-        where: { primaryPhone: { not: null } },
-        _count: { platform: true },
-      }),
-      prisma.customer.groupBy({
-        by: ['interestedVehicle'],
-        where: { primaryPhone: { not: null }, interestedVehicle: { not: null } },
-        _count: { interestedVehicle: true },
-      }),
-      prisma.customer.groupBy({
-        by: ['assignedSales'],
-        where: { primaryPhone: { not: null }, assignedSales: { not: null } },
-        _count: { assignedSales: true },
-      }),
-    ]);
+    await ensureDatabaseSchema();
 
-    const platformBreakdown: Record<string, number> = {};
-    for (const p of platformCounts) {
-      platformBreakdown[p.platform] = p._count.platform;
-    }
+    try {
+      const [
+        totalWithPhones,
+        totalMessages,
+        totalOrders,
+        platformCounts,
+        vehicleCounts,
+        salesCounts,
+      ] = await Promise.all([
+        prisma.customer.count({ where: { primaryPhone: { not: null } } }),
+        prisma.message.count(),
+        prisma.order.count(),
+        prisma.customer.groupBy({
+          by: ['platform'],
+          where: { primaryPhone: { not: null } },
+          _count: { platform: true },
+        }),
+        prisma.customer.groupBy({
+          by: ['interestedVehicle'],
+          where: { primaryPhone: { not: null }, interestedVehicle: { not: null } },
+          _count: { interestedVehicle: true },
+        }),
+        prisma.customer.groupBy({
+          by: ['assignedSales'],
+          where: { primaryPhone: { not: null }, assignedSales: { not: null } },
+          _count: { assignedSales: true },
+        }),
+      ]);
 
-    const vehicleBreakdown: Record<string, number> = {};
-    for (const v of vehicleCounts) {
-      if (v.interestedVehicle) {
-        vehicleBreakdown[v.interestedVehicle] = v._count.interestedVehicle;
+      const platformBreakdown: Record<string, number> = {};
+      for (const p of platformCounts) {
+        platformBreakdown[p.platform] = p._count.platform;
       }
-    }
 
-    const salesBreakdown: Record<string, number> = {};
-    for (const s of salesCounts) {
-      if (s.assignedSales) {
-        salesBreakdown[s.assignedSales] = s._count.assignedSales;
+      const vehicleBreakdown: Record<string, number> = {};
+      for (const v of vehicleCounts) {
+        if (v.interestedVehicle) {
+          vehicleBreakdown[v.interestedVehicle] = v._count.interestedVehicle;
+        }
       }
-    }
 
-    return {
-      totalCustomers: totalWithPhones,
-      totalWithPhones,
-      totalMessages,
-      totalOrders,
-      platformBreakdown,
-      vehicleBreakdown,
-      salesBreakdown,
-    };
+      const salesBreakdown: Record<string, number> = {};
+      for (const s of salesCounts) {
+        if (s.assignedSales) {
+          salesBreakdown[s.assignedSales] = s._count.assignedSales;
+        }
+      }
+
+      return {
+        totalCustomers: totalWithPhones,
+        totalWithPhones,
+        totalMessages,
+        totalOrders,
+        platformBreakdown,
+        vehicleBreakdown,
+        salesBreakdown,
+      };
+    } catch (err: any) {
+      logger.error({ error: err.message }, 'Error in getStats, returning empty');
+      return {
+        totalCustomers: 0,
+        totalWithPhones: 0,
+        totalMessages: 0,
+        totalOrders: 0,
+        platformBreakdown: {},
+        vehicleBreakdown: {},
+        salesBreakdown: {},
+      };
+    }
   }
 }

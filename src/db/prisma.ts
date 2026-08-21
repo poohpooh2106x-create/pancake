@@ -19,10 +19,6 @@ export const prisma = new PrismaClient({
   log: ['error', 'warn'],
 });
 
-prisma.$on('error' as never, (e: any) => {
-  logger.error(e, 'Prisma Client Error');
-});
-
 let isInitialized = false;
 
 /**
@@ -60,7 +56,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
         totalSpent REAL DEFAULT 0.0,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
+      )
     `);
 
     await prisma.$executeRawUnsafe(`
@@ -75,7 +71,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
         sourceMessageId TEXT,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (customerId) REFERENCES Customer(id) ON DELETE CASCADE
-      );
+      )
     `);
 
     await prisma.$executeRawUnsafe(`
@@ -90,7 +86,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
         sentAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (customerId) REFERENCES Customer(id) ON DELETE CASCADE
-      );
+      )
     `);
 
     await prisma.$executeRawUnsafe(`
@@ -104,7 +100,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
         itemsSummary TEXT,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (customerId) REFERENCES Customer(id) ON DELETE CASCADE
-      );
+      )
     `);
 
     await prisma.$executeRawUnsafe(`
@@ -120,7 +116,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
         processingTimeMs INTEGER,
         isProcessed BOOLEAN DEFAULT 1,
         receivedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
+      )
     `);
 
     isInitialized = true;
