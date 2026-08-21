@@ -1,6 +1,9 @@
 node_modules
-dist
-.env
+dist/*.js
+dist/*.map
+dist/*.d.ts
+!dist/public
+!dist/public/**
 dev.db
 dev.db-journal
 *.db

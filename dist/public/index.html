@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Pancake Sales & Lead Distribution CRM</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              400: '#fb923c',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+            },
+            dark: {
+              800: '#1e293b',
+              850: '#172033',
+              900: '#0f172a',
+              950: '#090d16',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body class="bg-dark-900 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- Top Navigation Header -->
+  <!-- ========================================================================= -->
+  <header class="border-b border-slate-800/80 bg-dark-950/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <span class="text-xl">🚛</span>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="font-bold text-lg text-white tracking-tight">Pancake Sales CRM</h1>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">Auto Phone Extractor</span>
+          </div>
+          <p class="text-xs text-slate-400">บันทึกเฉพาะลูกค้าที่ให้เบอร์โทร & จ่ายงานให้เซลล์</p>
+        </div>
+      </div>
+
+      <!-- Webhook URL & System Status -->
+      <div class="hidden md:flex items-center space-x-3">
+        <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span>
+          <span id="db-status-badge">ระบบกำลังดักจับเบอร์โทรลูกค้า</span>
+        </div>
+
+        <div class="flex items-center bg-dark-800/90 border border-slate-700/70 rounded-lg px-3 py-1.5 text-xs text-slate-300">
+          <i data-lucide="webhook" class="w-3.5 h-3.5 mr-2 text-brand-400"></i>
+          <span class="font-mono text-slate-300 mr-2">/api/webhooks/pancake</span>
+          <button id="copy-webhook-btn" class="text-slate-400 hover:text-white transition-colors" title="Copy Endpoint">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <button id="btn-open-quick-add" class="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-600/30 transition-all text-xs font-semibold">
+          <i data-lucide="user-plus" class="w-4 h-4"></i>
+          <span>+ เพิ่มเคสใหม่</span>
+        </button>
+
+        <button id="btn-open-simulator" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-600/30 hover:text-white transition-all text-xs font-medium">
+          <i data-lucide="play-circle" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">จำลองแชท (Simulator)</span>
+        </button>
+
+        <button id="btn-export-csv" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white transition-all text-xs font-medium">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Export Excel</span>
+        </button>
+
+        <button id="btn-clear-all" class="p-2 rounded-lg bg-rose-950/40 border border-rose-900/60 text-rose-400 hover:bg-rose-900/50 hover:text-rose-200 transition-all text-xs font-medium" title="ล้างข้อมูลทั้งหมดในตาราง">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- Main Application Container -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- KPI Metric Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- Metric 1: Total Verified Phone Leads -->
+      <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400">ลูกค้าที่ได้เบอร์โทรแล้ว (Leads)</p>
+            <h3 id="stat-total-phones" class="text-2xl font-bold text-emerald-400 mt-1">0</h3>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <i data-lucide="phone-call" class="w-6 h-6"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center text-xs text-slate-400">
+          <span class="text-emerald-400 font-medium mr-1.5 flex items-center"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 mr-0.5"></i> ตรวจสอบเบอร์แล้ว</span>
+          <span>นับเฉพาะคนที่ให้เบอร์</span>
+        </div>
+      </div>
+
+      <!-- Metric 2: Assigned Leads -->
+      <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400">เคสที่จ่ายงานให้เซลล์แล้ว</p>
+            <h3 id="stat-total-assigned" class="text-2xl font-bold text-white mt-1">0</h3>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+            <i data-lucide="user-check" class="w-6 h-6"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center text-xs text-slate-400">
+          <span class="text-blue-400 font-medium mr-1.5">8 เซลล์ในทีม</span>
+          <span>พร้อมส่งใน LINE</span>
+        </div>
+      </div>
+
+      <!-- Metric 3: Pending Assignment -->
+      <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400">เคสรอเลือกเซลล์</p>
+            <h3 id="stat-pending-assigned" class="text-2xl font-bold text-amber-400 mt-1">0</h3>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <i data-lucide="clock" class="w-6 h-6"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center text-xs text-slate-400">
+          <span class="text-amber-400 font-medium mr-1.5">Action required</span>
+          <span>แอดมินเลือกเซลล์รับเคส</span>
+        </div>
+      </div>
+
+      <!-- Metric 4: Messages Processed -->
+      <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400">ข้อความที่สแกนหาเบอร์</p>
+            <h3 id="stat-total-messages" class="text-2xl font-bold text-purple-400 mt-1">0</h3>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+            <i data-lucide="message-square-text" class="w-6 h-6"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center text-xs text-slate-400">
+          <span class="text-purple-400 font-medium mr-1.5">AI & Regex</span>
+          <span>สแกนตรวจจับอัตโนมัติ</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Visual Analytics & Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Chart 1: Vehicle Interest (หัวลาก, ตู้10, หาง, ดั้ม, ฯลฯ) -->
+      <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-slate-200 flex items-center">
+            <i data-lucide="truck" class="w-4 h-4 mr-2 text-brand-400"></i>
+            สัดส่วนรถที่ลูกค้าสนใจ (มีเบอร์โทร)
+          </h3>
+          <span class="text-xs text-slate-400">หัวลาก/ตู้10/หาง/ดั้ม</span>
+        </div>
+        <div class="h-52 flex items-center justify-center relative">
+          <canvas id="vehicleChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 2: Sales Team Distribution -->
+      <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-slate-200 flex items-center">
+            <i data-lucide="user-check" class="w-4 h-4 mr-2 text-emerald-400"></i>
+            การกระจายเคสให้เซลล์ (8 คน)
+          </h3>
+          <span class="text-xs text-slate-400">จำนวนเคสต่อคน</span>
+        </div>
+        <div class="h-52 flex items-center justify-center relative">
+          <canvas id="salesChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Sales Team Quick Reference -->
+      <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+        <div>
+          <h3 class="text-sm font-semibold text-slate-200 flex items-center mb-3">
+            <i data-lucide="badge-check" class="w-4 h-4 mr-2 text-indigo-400"></i>
+            ทีมเซลล์ที่รับผิดชอบ (8 คน)
+          </h3>
+          
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-950 text-cyan-400 border border-cyan-700">วุธ</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-วุธ">0</span>
+            </div>
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-950 text-orange-400 border border-orange-700">อั๋น</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-อั๋น">0</span>
+            </div>
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-stone-800 text-stone-300 border border-stone-600">ท้อป</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-ท้อป">0</span>
+            </div>
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-700">จิ๊บ</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-จิ๊บ">0</span>
+            </div>
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-950 text-amber-500 border border-amber-700">เกด</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-เกด">0</span>
+            </div>
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-950 text-purple-400 border border-purple-700">ม่า</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-ม่า">0</span>
+            </div>
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-950 text-rose-400 border border-rose-700">ปุ๊ก</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-ปุ๊ก">0</span>
+            </div>
+            <div class="p-2 rounded-xl bg-dark-900/60 border border-slate-800 flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-950 text-teal-400 border border-teal-700">เฟิร์น</span>
+              <span class="text-slate-400 font-mono text-[11px]" id="team-count-เฟิร์น">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- Customer CRM Data Table (Exact Spreadsheet Layout) -->
+    <!-- ======================================================================= -->
+    <div class="glass-card rounded-2xl overflow-hidden shadow-xl border border-slate-800/80">
+      
+      <!-- Table Header & Controls Bar -->
+      <div class="p-5 border-b border-slate-800/80 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        
+        <!-- Left: Source Tabs (Matching Sheet Bottom Tabs) -->
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <h2 class="text-base font-bold text-white flex items-center">
+            <i data-lucide="table" class="w-5 h-5 mr-2 text-brand-500"></i>
+            ตารางรับเคสลูกค้า (เฉพาะคนที่มีเบอร์โทร)
+          </h2>
+
+          <!-- Source Filter Chips -->
+          <div class="flex flex-wrap items-center bg-dark-900/80 p-1 rounded-xl border border-slate-800 text-xs">
+            <button class="source-tab px-3 py-1.5 rounded-lg font-medium transition-all bg-brand-500 text-white" data-source="ALL">ทั้งหมด</button>
+            <button class="source-tab px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all" data-source="FB เคพีศรีราชา">FB เคพีศรีราชา</button>
+            <button class="source-tab px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all" data-source="TikTokเคพีศรีราชา">TikTok</button>
+            <button class="source-tab px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all" data-source="LOA เคพี">LOA เคพี</button>
+            <button class="source-tab px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all" data-source="FB เฮียตั้มรถตัด">FB เฮียตั้มรถตัด</button>
+          </div>
+        </div>
+
+        <!-- Right: Search Bar & Refresh -->
+        <div class="flex items-center space-x-3">
+          
+          <!-- Search Input with Clear Button -->
+          <div class="relative w-full sm:w-64">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input
+              type="text"
+              id="customer-search-input"
+              placeholder="ค้นหาชื่อ, เบอร์โทร, รถ..."
+              class="w-full pl-9 pr-8 py-2 text-xs rounded-xl bg-dark-900/90 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-colors"
+            />
+            <button id="btn-clear-search" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-200 hidden" title="ล้างคำค้นหา">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+
+          <!-- Refresh Button -->
+          <button id="btn-refresh-table" class="p-2 rounded-xl bg-dark-900 border border-slate-700/80 text-slate-400 hover:text-white hover:border-slate-600 transition-all" title="Refresh Table">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Table Component (Columns A-G matching Google Sheets) -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-dark-950/70 text-slate-400 uppercase tracking-wider text-[11px] border-b border-slate-800">
+            <tr>
+              <th class="px-4 py-3.5 font-semibold">วันที่รับ</th>
+              <th class="px-3 py-3.5 font-semibold">เวลา</th>
+              <th class="px-4 py-3.5 font-semibold">ที่มา</th>
+              <th class="px-4 py-3.5 font-semibold">ชื่อลูกค้า</th>
+              <th class="px-4 py-3.5 font-semibold">เบอร์โทร</th>
+              <th class="px-4 py-3.5 font-semibold">รถที่สนใจ</th>
+              <th class="px-4 py-3.5 font-semibold">เซลล์ที่รับ</th>
+              <th class="px-4 py-3.5 font-semibold text-right">ส่งต่อ / จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="customer-table-body" class="divide-y divide-slate-800/60">
+            <tr>
+              <td colspan="8" class="px-5 py-12 text-center text-slate-500">
+                <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2 text-brand-500"></i>
+                <span>กำลังโหลดข้อมูลลูกค้า...</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table Pagination Bar -->
+      <div class="p-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+        <span id="pagination-summary">แสดง 0 จาก 0 รายการ</span>
+        <div class="flex items-center space-x-2">
+          <button id="btn-prev-page" class="px-3 py-1.5 rounded-lg bg-dark-900 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            ก่อนหน้า
+          </button>
+          <span id="pagination-current-page" class="px-2 font-medium text-slate-200">1</span>
+          <button id="btn-next-page" class="px-3 py-1.5 rounded-lg bg-dark-900 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            ถัดไป
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- Customer Detail & Chat Timeline Modal -->
+  <!-- ========================================================================= -->
+  <div id="customer-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-dark-850 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div id="modal-avatar-container" class="w-12 h-12 rounded-xl bg-brand-500/20 text-brand-400 font-bold text-lg flex items-center justify-center border border-brand-500/30">
+            C
+          </div>
+          <div>
+            <h3 id="modal-customer-name" class="font-bold text-base text-white">Customer Name</h3>
+            <p id="modal-pancake-id" class="text-xs font-mono text-slate-400">ID: cust_xxxx</p>
+          </div>
+        </div>
+        <button id="btn-close-modal" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+        
+        <!-- Contact & Phone Numbers Card -->
+        <div class="p-4 rounded-xl bg-dark-900/80 border border-slate-800 space-y-3">
+          <h4 class="font-semibold text-slate-200 flex items-center">
+            <i data-lucide="phone" class="w-4 h-4 mr-2 text-emerald-400"></i>
+            เบอร์โทรศัพท์ที่สกัดได้จากแชท
+          </h4>
+          <div id="modal-phones-list" class="space-y-2">
+          </div>
+        </div>
+
+        <!-- Inbound Chat Timeline with Message Deletion -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-semibold text-slate-200 flex items-center">
+              <i data-lucide="messages-square" class="w-4 h-4 mr-2 text-amber-400"></i>
+              ประวัติการสนทนาใน Pancake Chat (ไฮไลท์เบอร์โทร & รถ)
+            </h4>
+            <span class="text-[11px] text-slate-500">สามารถกดลบข้อความที่ไม่ต้องการได้</span>
+          </div>
+          <div id="modal-messages-timeline" class="space-y-3 max-h-56 overflow-y-auto pr-1">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-800 bg-dark-900/60 flex items-center justify-between">
+        <button id="btn-delete-current-customer" class="px-3 py-1.5 rounded-xl bg-rose-950/40 border border-rose-900/60 text-rose-400 hover:bg-rose-900/50 text-xs font-medium transition-all flex items-center space-x-1">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          <span>ลบลูกค้าคนนี้</span>
+        </button>
+        <button id="btn-close-modal-footer" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-medium transition-all">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- Webhook Simulator Modal (1-Click Testing Console) -->
+  <!-- ========================================================================= -->
+  <div id="simulator-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-dark-850 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+            <i data-lucide="play-circle" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-white">จำลองแชทลูกค้า Pancake (Simulator)</h3>
+            <p class="text-xs text-slate-400">ทดสอบการส่ง Webhook แชทถามซื้อรถ และทดสอบการสกัดเบอร์โทร</p>
+          </div>
+        </div>
+        <button id="btn-close-simulator" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
+        
+        <!-- Preset Scenario Selector -->
+        <div>
+          <label class="block font-semibold text-slate-200 mb-2">เลือกตัวอย่างบทสนทนาจำลอง:</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button class="preset-btn p-2.5 text-left rounded-xl bg-dark-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-950/20 transition-all active-preset" data-preset="tractor">
+              <span class="font-medium text-white block">1. สนใจหัวลาก (เสกสรร)</span>
+              <span class="text-[11px] text-slate-400">"สนใจหัวลากครับ เบอร์ 063-9292339"</span>
+            </button>
+
+            <button class="preset-btn p-2.5 text-left rounded-xl bg-dark-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-950/20 transition-all" data-preset="box10">
+              <span class="font-medium text-white block">2. สนใจตู้10 (พี่โอ๊ก ชุมแพ)</span>
+              <span class="text-[11px] text-slate-400">"ขอรายละเอียดตู้10 หน่อยครับ โทร 083-5469139"</span>
+            </button>
+
+            <button class="preset-btn p-2.5 text-left rounded-xl bg-dark-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-950/20 transition-all" data-preset="trailer">
+              <span class="font-medium text-white block">3. สนใจหางพ่วง (อุดม)</span>
+              <span class="text-[11px] text-slate-400">"หางก้างยังมีมั้ยครับ เบอร์ 087-1549523"</span>
+            </button>
+
+            <button class="preset-btn p-2.5 text-left rounded-xl bg-dark-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-950/20 transition-all" data-preset="dump">
+              <span class="font-medium text-white block">4. สนใจรถดั้ม (กิตติศักดิ์)</span>
+              <span class="text-[11px] text-slate-400">"สนใจดั้มครับ โทร 098-4088872"</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- JSON Payload Editor -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="font-semibold text-slate-200">Webhook JSON Payload:</label>
+            <span class="text-[11px] text-slate-400">POST /api/webhooks/pancake</span>
+          </div>
+          <textarea
+            id="simulator-payload-editor"
+            rows="8"
+            class="w-full font-mono text-[11px] p-3 rounded-xl bg-dark-900 border border-slate-800 text-emerald-400 focus:outline-none focus:border-indigo-500 transition-colors"
+          ></textarea>
+        </div>
+
+        <!-- Response Status Box -->
+        <div id="simulator-response-box" class="p-3 rounded-xl bg-dark-900 border border-slate-800 hidden font-mono text-[11px]">
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-800 bg-dark-900/60 flex items-center justify-between">
+        <span class="text-xs text-slate-400">ระบบจะประมวลผลและสกัดเบอร์โทรให้อัตโนมัติ</span>
+        <div class="flex items-center space-x-2">
+          <button id="btn-close-simulator-footer" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-medium transition-all">
+            ยกเลิก
+          </button>
+          <button id="btn-send-simulated-webhook" class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-brand-600 text-white text-xs font-semibold hover:opacity-90 shadow-lg shadow-indigo-500/20 transition-all flex items-center space-x-1.5">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            <span>ส่งแชททดสอบ</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- Quick Add Lead Modal -->
+  <!-- ========================================================================= -->
+  <div id="quick-add-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden animate-in fade-in duration-150">
+    <div class="glass-card rounded-2xl max-w-lg w-full overflow-hidden border border-slate-700 shadow-2xl flex flex-col">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-dark-900/80">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400">
+            <i data-lucide="user-plus" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-100 text-base">เพิ่มเคสลูกค้าใหม่ด่วน</h3>
+            <p class="text-xs text-slate-400">บันทึกเบอร์โทร เลือกรุ่นรถ และจ่ายงานให้เซลล์</p>
+          </div>
+        </div>
+        <button id="btn-close-quick-add" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body Form -->
+      <form id="quick-add-form" class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">👤 ชื่อลูกค้า <span class="text-rose-400">*</span></label>
+          <input type="text" id="qa-name" required placeholder="เช่น อมร จิ๊บจ๊าบ" class="w-full px-3.5 py-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-brand-500 transition-colors" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">📞 เบอร์โทรศัพท์ <span class="text-rose-400">*</span></label>
+            <input type="text" id="qa-phone" required placeholder="เช่น 0935498942" class="w-full px-3.5 py-2 rounded-xl bg-dark-900 border border-slate-800 font-mono text-emerald-400 text-sm focus:outline-none focus:border-brand-500 transition-colors" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">📱 ที่มา / ช่องทาง</label>
+            <select id="qa-source" class="w-full px-3.5 py-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-200 text-sm focus:outline-none focus:border-brand-500 transition-colors">
+              <option value="FB เคพีศรีราชา">FB เคพีศรีราชา</option>
+              <option value="LOA เคพี">LOA เคพี</option>
+              <option value="TikTok เคพีศรีราชา">TikTok เคพีศรีราชา</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">🚛 รุ่นรถที่สนใจ</label>
+            <select id="qa-vehicle" class="w-full px-3.5 py-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-200 text-sm focus:outline-none focus:border-brand-500 transition-colors">
+              <option value="หัวลาก">หัวลาก</option>
+              <option value="ตู้10">ตู้10</option>
+              <option value="หาง">หาง</option>
+              <option value="หางพ่วง">หางพ่วง</option>
+              <option value="หางก้าง">หางก้าง</option>
+              <option value="หางเรียบ">หางเรียบ</option>
+              <option value="ดั้ม">ดั้ม</option>
+              <option value="6ล้อ">6ล้อ</option>
+              <option value="10ล้อ">10ล้อ</option>
+              <option value="รถตัด">รถตัด</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">👨‍💼 เซลล์ผู้รับผิดชอบ</label>
+            <select id="qa-sales" class="w-full px-3.5 py-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-200 text-sm font-bold focus:outline-none focus:border-brand-500 transition-colors">
+              <option value="">-- ยังไม่จ่ายงาน --</option>
+              <option value="วุธ">วุธ</option>
+              <option value="อั๋น">อั๋น</option>
+              <option value="ท้อป">ท้อป</option>
+              <option value="จิ๊บ">จิ๊บ</option>
+              <option value="เกด">เกด</option>
+              <option value="ม่า">ม่า</option>
+              <option value="ปุ๊ก">ปุ๊ก</option>
+              <option value="เฟิร์น">เฟิร์น</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">💬 ข้อความแชท / หมายเหตุ</label>
+          <textarea id="qa-notes" rows="2" placeholder="เช่น สนใจรถหัวลาก สภาพพร้อมใช้งาน" class="w-full px-3.5 py-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-brand-500 transition-colors"></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end space-x-2">
+          <button type="button" id="btn-close-quick-add-footer" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-medium transition-all">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-brand-600/30 transition-all flex items-center space-x-1.5">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>บันทึกลงระบบทันที</span>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
+
+  <!-- Application Logic (Self-Contained Inline Execution) -->
+  <script>
+// Local Storage Persistent Key
+const STORAGE_KEY = 'kp_crm_customers_permanent_v3';
+
+// Preset Sales Team (8 Sales members)
+const SALES_OPTIONS = [
+  { name: 'วุธ', class: 'bg-cyan-950 text-cyan-400 border-cyan-700', chartColor: '#06b6d4' },
+  { name: 'อั๋น', class: 'bg-orange-950 text-orange-400 border-orange-700', chartColor: '#f97316' },
+  { name: 'ท้อป', class: 'bg-stone-800 text-stone-300 border-stone-600', chartColor: '#78716c' },
+  { name: 'จิ๊บ', class: 'bg-emerald-950 text-emerald-400 border-emerald-700', chartColor: '#10b981' },
+  { name: 'เกด', class: 'bg-amber-950 text-amber-500 border-amber-700', chartColor: '#f59e0b' },
+  { name: 'ม่า', class: 'bg-purple-950 text-purple-400 border-purple-700', chartColor: '#a855f7' },
+  { name: 'ปุ๊ก', class: 'bg-rose-950 text-rose-400 border-rose-700', chartColor: '#f43f5e' },
+  { name: 'เฟิร์น', class: 'bg-teal-950 text-teal-400 border-teal-700', chartColor: '#14b8a6' },
+];
+
+const VEHICLE_OPTIONS = [
+  'หัวลาก',
+  'ตู้10',
+  'หาง',
+  'หางพ่วง',
+  'หางก้าง',
+  'หางเรียบ',
+  'ดั้ม',
+  '6ล้อ',
+  '10ล้อ',
+  'รถตัด',
+];
+
+// Presets for the Webhook Simulator
+const PRESETS = {
+  tractor: {
+    event: 'new_message',
+    page_name: 'FB เคพีศรีราชา',
+    platform: 'facebook',
+    customer: {
+      id: 'fb_cust_' + Math.floor(100000 + Math.random() * 900000),
+      name: 'เสกสรร จันทะคุณ',
+      tags: ['สนใจหัวลาก'],
+    },
+    message: {
+      id: 'msg_' + Date.now(),
+      text: 'สวัสดีครับแอดมิน สนใจรถหัวลากครับ สภาพพร้อมใช้มั้ยครับ ติดต่อ 063-9292339 ครับ',
+      inserted_at: new Date().toISOString(),
+    },
+  },
+  box10: {
+    event: 'new_message',
+    page_name: 'FB เคพีศรีราชา',
+    platform: 'facebook',
+    customer: {
+      id: 'fb_cust_' + Math.floor(100000 + Math.random() * 900000),
+      name: 'พี่โอ๊ก ชุมแพขนส่ง',
+      tags: ['ตู้10'],
+    },
+    message: {
+      id: 'msg_' + Date.now(),
+      text: 'ขอรูปและราคาตู้10 หน่อยครับ โทร 083-5469139 สะดวกรับสายตลอด',
+      inserted_at: new Date().toISOString(),
+    },
+  },
+  trailer: {
+    event: 'new_message',
+    page_name: 'LOA เคพี',
+    platform: 'line',
+    customer: {
+      id: 'line_cust_' + Math.floor(100000 + Math.random() * 900000),
+      name: 'อุดม สีโชติ',
+      tags: ['หางพ่วง'],
+    },
+    message: {
+      id: 'msg_' + Date.now(),
+      text: 'หางก้างปลา มีของเลยมั้ยครับ เบอร์ติดต่อ 087-1549523',
+      inserted_at: new Date().toISOString(),
+    },
+  },
+  dump: {
+    event: 'new_message',
+    page_name: 'TikTokเคพีศรีราชา',
+    platform: 'web',
+    customer: {
+      id: 'tt_cust_' + Math.floor(100000 + Math.random() * 900000),
+      name: 'กิตติศักดิ์ กลิ่นจันทร์',
+      tags: ['รถดั้ม'],
+    },
+    message: {
+      id: 'msg_' + Date.now(),
+      text: 'สนใจดั้มครับ โทรหาผมหน่อย 098-4088872',
+      inserted_at: new Date().toISOString(),
+    },
+  },
+};
+
+// Application State
+const state = {
+  page: 1,
+  limit: 20,
+  source: 'ALL',
+  hasPhone: true,
+  search: '',
+  totalPages: 1,
+  totalCustomers: 0,
+  activeCustomerId: null,
+  vehicleChartInstance: null,
+  salesChartInstance: null,
+  cachedCustomers: [],
+};
+
+// -------------------------------------------------------------
+// LOCAL STORAGE PERSISTENCE ENGINE (Instant & Permanent Data)
+// -------------------------------------------------------------
+
+const DEFAULT_INITIAL_LEADS = [
+  {
+    id: 'lead_real_001',
+    pancakeCustomerId: '24266314679620841',
+    name: 'อมร จิ๊บจ๊าบ',
+    primaryPhone: '0935498942',
+    interestedVehicle: 'หัวลาก',
+    assignedSales: 'จิ๊บ',
+    leadSource: 'FB เคพีศรีราชา',
+    receivedDate: '21/8/2026',
+    receivedTime: '14:20',
+    notes: 'สนใจรถหัวลากครับ สภาพสวยๆ',
+    lastContactAt: new Date().toISOString(),
+    phones: [{ phoneNumber: '0935498942', carrier: 'AIS' }],
+    messages: [
+      { id: 'm1', senderType: 'CUSTOMER', text: 'สนใจรถหัวลาก', sentAt: new Date().toISOString() },
+      { id: 'm2', senderType: 'CUSTOMER', text: '0935498942', extractedPhones: '["0935498942"]', sentAt: new Date().toISOString() },
+    ],
+  },
+  {
+    id: 'lead_real_002',
+    pancakeCustomerId: 'tt_cust_274159',
+    name: 'กิตติศักดิ์ กลิ่นจันทร์',
+    primaryPhone: '0984088872',
+    interestedVehicle: 'ดั้ม',
+    assignedSales: 'วุธ',
+    leadSource: 'TikTok เคพีศรีราชา',
+    receivedDate: '21/8/2026',
+    receivedTime: '07:06',
+    notes: 'สนใจดั้มครับ โทรหาผมหน่อย',
+    lastContactAt: new Date(Date.now() - 3600000).toISOString(),
+    phones: [{ phoneNumber: '0984088872', carrier: 'AIS' }],
+    messages: [
+      { id: 'm3', senderType: 'CUSTOMER', text: 'สนใจดั้มครับ โทรหาผมหน่อย 098-4088872', extractedPhones: '["0984088872"]', sentAt: new Date().toISOString() },
+    ],
+  },
+  {
+    id: 'lead_real_003',
+    pancakeCustomerId: 'cust_real_003',
+    name: 'Wichaphat Chomphu',
+    primaryPhone: '0820876792',
+    interestedVehicle: 'หัวลาก',
+    assignedSales: 'อั๋น',
+    leadSource: 'FB เคพีศรีราชา',
+    receivedDate: '19/8/2026',
+    receivedTime: '12:56',
+    notes: 'สนใจรถหัวลากครับ',
+    lastContactAt: new Date(Date.now() - 86400000).toISOString(),
+    phones: [{ phoneNumber: '0820876792', carrier: 'DTAC' }],
+    messages: [
+      { id: 'm4', senderType: 'CUSTOMER', text: 'สนใจรถหัวลาก 0820876792', extractedPhones: '["0820876792"]', sentAt: new Date().toISOString() },
+    ],
+  },
+];
+
+function getLocalCustomers() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      saveLocalCustomers(DEFAULT_INITIAL_LEADS);
+      return DEFAULT_INITIAL_LEADS;
+    }
+    const list = JSON.parse(raw);
+    if (Array.isArray(list) && list.length > 0) return list;
+    saveLocalCustomers(DEFAULT_INITIAL_LEADS);
+    return DEFAULT_INITIAL_LEADS;
+  } catch {
+    return DEFAULT_INITIAL_LEADS;
+  }
+}
+
+function saveLocalCustomers(list) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  } catch (err) {
+    console.error('LocalStorage write error:', err);
+  }
+}
+
+function mergeCustomerRecords(serverRecords) {
+  const localMap = new Map();
+  let localList = getLocalCustomers();
+
+  if (!localList || localList.length === 0) {
+    localList = [...DEFAULT_INITIAL_LEADS];
+  }
+
+  for (const item of localList) {
+    const key = item.pancakeCustomerId || item.primaryPhone || item.id;
+    if (key) localMap.set(key, item);
+  }
+
+  if (Array.isArray(serverRecords) && serverRecords.length > 0) {
+    for (const item of serverRecords) {
+      const key = item.pancakeCustomerId || item.primaryPhone || item.id;
+      if (!key) continue;
+
+      if (localMap.has(key)) {
+        const existing = localMap.get(key);
+        localMap.set(key, {
+          ...existing,
+          ...item,
+          assignedSales: existing.assignedSales || item.assignedSales,
+          interestedVehicle: existing.interestedVehicle || item.interestedVehicle,
+          notes: existing.notes || item.notes,
+        });
+      } else {
+        localMap.set(key, item);
+      }
+    }
+  }
+
+  let merged = Array.from(localMap.values()).sort((a, b) => {
+    const timeA = new Date(a.lastContactAt || a.firstContactAt || a.createdAt || 0).getTime();
+    const timeB = new Date(b.lastContactAt || b.firstContactAt || b.createdAt || 0).getTime();
+    return timeB - timeA;
+  });
+
+  if (merged.length === 0) {
+    merged = [...DEFAULT_INITIAL_LEADS];
+  }
+
+  saveLocalCustomers(merged);
+  return merged;
+}
+
+// -------------------------------------------------------------
+// DOM INITIALIZATION
+// -------------------------------------------------------------
+
+document.addEventListener('DOMContentLoaded', () => {
+  initLucide();
+  initEventListeners();
+
+  // Instant render from local cache (0.001s instant load!)
+  state.cachedCustomers = getLocalCustomers();
+  if (state.cachedCustomers.length > 0) {
+    renderTableWithCustomers(state.cachedCustomers);
+    updateLocalStats(state.cachedCustomers);
+  }
+
+  // Background server fetch & live sync
+  loadStats();
+  loadCustomers();
+  initSimulatorPayload('tractor');
+
+  // Silent live poll every 8 seconds for new incoming Pancake leads
+  setInterval(() => {
+    silentSync();
+  }, 8000);
+});
+
+function initLucide() {
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
+}
+
+// Event Listeners
+function initEventListeners() {
+  // Search input with debounce and clear button
+  let searchTimeout;
+  const searchInput = document.getElementById('customer-search-input');
+  const clearSearchBtn = document.getElementById('btn-clear-search');
+
+  searchInput.addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (val.length > 0) {
+      clearSearchBtn.classList.remove('hidden');
+    } else {
+      clearSearchBtn.classList.add('hidden');
+    }
+
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      state.search = val.trim();
+      state.page = 1;
+      filterAndRenderLocal();
+      loadCustomers();
+    }, 250);
+  });
+
+  clearSearchBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    clearSearchBtn.classList.add('hidden');
+    state.search = '';
+    state.page = 1;
+    filterAndRenderLocal();
+    loadCustomers();
+  });
+
+  // Source Filter Buttons (All, FB, LINE, TikTok)
+  document.querySelectorAll('.filter-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('bg-brand-600', 'text-white'));
+      btn.classList.add('bg-brand-600', 'text-white');
+      state.source = btn.getAttribute('data-source');
+      state.page = 1;
+      filterAndRenderLocal();
+      loadCustomers();
+    });
+  });
+
+  // Refresh Button
+  const btnRefresh = document.getElementById('btn-refresh');
+  if (btnRefresh) {
+    btnRefresh.addEventListener('click', () => {
+      loadStats();
+      loadCustomers();
+      showToast('รีเฟรชข้อมูลล่าสุดเรียบร้อย', 'success');
+    });
+  }
+
+  // Quick Add Lead Modal Controls
+  const btnOpenQuickAdd = document.getElementById('btn-open-quick-add');
+  if (btnOpenQuickAdd) {
+    btnOpenQuickAdd.addEventListener('click', openQuickAddModal);
+  }
+  const btnCloseQA = document.getElementById('btn-close-quick-add');
+  if (btnCloseQA) btnCloseQA.addEventListener('click', closeQuickAddModal);
+  const btnCloseQAFooter = document.getElementById('btn-close-quick-add-footer');
+  if (btnCloseQAFooter) btnCloseQAFooter.addEventListener('click', closeQuickAddModal);
+
+  const formQA = document.getElementById('quick-add-form');
+  if (formQA) {
+    formQA.addEventListener('submit', handleQuickAddSubmit);
+  }
+
+  // Customer Modal Controls
+  const btnCloseModal = document.getElementById('btn-close-modal');
+  if (btnCloseModal) btnCloseModal.addEventListener('click', closeCustomerModal);
+  const btnCloseModalFooter = document.getElementById('btn-close-modal-footer');
+  if (btnCloseModalFooter) btnCloseModalFooter.addEventListener('click', closeCustomerModal);
+
+  // Webhook Simulator Modal Controls
+  const btnOpenSim = document.getElementById('btn-open-simulator');
+  if (btnOpenSim) btnOpenSim.addEventListener('click', openSimulatorModal);
+  const btnCloseSim = document.getElementById('btn-close-simulator');
+  if (btnCloseSim) btnCloseSim.addEventListener('click', closeSimulatorModal);
+  const btnCloseSimFooter = document.getElementById('btn-close-simulator-footer');
+  if (btnCloseSimFooter) btnCloseSimFooter.addEventListener('click', closeSimulatorModal);
+  const btnSendSim = document.getElementById('btn-send-simulated-webhook');
+  if (btnSendSim) btnSendSim.addEventListener('click', sendSimulatedWebhook);
+
+  // Simulator Preset Buttons
+  document.querySelectorAll('.preset-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.preset-btn').forEach((b) => b.classList.remove('active-preset', 'border-indigo-500/50', 'bg-indigo-950/20'));
+      btn.classList.add('active-preset', 'border-indigo-500/50', 'bg-indigo-950/20');
+      initSimulatorPayload(btn.getAttribute('data-preset'));
+    });
+  });
+
+  // Copy Webhook URL
+  const btnCopyWebhook = document.getElementById('copy-webhook-btn');
+  if (btnCopyWebhook) {
+    btnCopyWebhook.addEventListener('click', () => {
+      const fullUrl = `${window.location.origin}/api/webhooks/pancake`;
+      navigator.clipboard.writeText(fullUrl).then(() => {
+        showToast('คัดลอก URL Webhook แล้ว: ' + fullUrl, 'success');
+      });
+    });
+  }
+
+  // Export CSV
+  const btnExport = document.getElementById('btn-export-csv');
+  if (btnExport) {
+    btnExport.addEventListener('click', () => {
+      window.open('/api/customers/export/csv', '_blank');
+      showToast('กำลังดาวน์โหลดไฟล์ Excel/CSV...', 'info');
+    });
+  }
+
+  // Clear All
+  const btnClearAll = document.getElementById('btn-clear-all');
+  if (btnClearAll) {
+    btnClearAll.addEventListener('click', async () => {
+      const ok = confirm('⚠️ คุณต้องการล้างข้อมูลเคสลูกค้าทั้งหมดใช่หรือไม่?');
+      if (!ok) return;
+      saveLocalCustomers([]);
+      state.cachedCustomers = [];
+      filterAndRenderLocal();
+      updateLocalStats([]);
+      showToast('ล้างข้อมูลเรียบร้อยแล้ว', 'success');
+    });
+  }
+}
+
+// -------------------------------------------------------------
+// FILTER & LOCAL RENDER
+// -------------------------------------------------------------
+
+function filterAndRenderLocal() {
+  let list = getLocalCustomers();
+
+  if (state.source && state.source !== 'ALL') {
+    list = list.filter((c) => (c.leadSource || '').includes(state.source));
+  }
+
+  if (state.search) {
+    const q = state.search.toLowerCase();
+    list = list.filter((c) =>
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.primaryPhone || '').includes(q) ||
+      (c.interestedVehicle || '').toLowerCase().includes(q) ||
+      (c.assignedSales || '').toLowerCase().includes(q) ||
+      (c.leadSource || '').toLowerCase().includes(q)
+    );
+  }
+
+  renderTableWithCustomers(list);
+  updateLocalStats(getLocalCustomers());
+}
+
+function updateLocalStats(list) {
+  const withPhones = list.filter((c) => !!c.primaryPhone).length;
+  let assignedCount = 0;
+  const salesMap = {};
+  const vehicleMap = {};
+
+  for (const c of list) {
+    if (c.assignedSales) {
+      assignedCount++;
+      salesMap[c.assignedSales] = (salesMap[c.assignedSales] || 0) + 1;
+    }
+    if (c.interestedVehicle) {
+      vehicleMap[c.interestedVehicle] = (vehicleMap[c.interestedVehicle] || 0) + 1;
+    }
+  }
+
+  const elPhones = document.getElementById('stat-total-phones');
+  if (elPhones) elPhones.innerText = withPhones.toLocaleString();
+
+  const elAssigned = document.getElementById('stat-total-assigned');
+  if (elAssigned) elAssigned.innerText = assignedCount.toLocaleString();
+
+  const elPending = document.getElementById('stat-pending-assigned');
+  if (elPending) elPending.innerText = Math.max(0, withPhones - assignedCount).toLocaleString();
+
+  SALES_OPTIONS.forEach((sales) => {
+    const el = document.getElementById(`team-count-${sales.name}`);
+    if (el) {
+      el.innerText = `${salesMap[sales.name] || 0}`;
+    }
+  });
+
+  renderVehicleChart(vehicleMap);
+  renderSalesChart(salesMap);
+}
+
+// -------------------------------------------------------------
+// SERVER DATA SYNC
+// -------------------------------------------------------------
+
+async function silentSync() {
+  try {
+    const res = await fetch('/api/customers?limit=50');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+      const merged = mergeCustomerRecords(data.data);
+      state.cachedCustomers = merged;
+      filterAndRenderLocal();
+    }
+  } catch {
+    // silent fallback
+  }
+}
+
+async function loadStats() {
+  try {
+    const res = await fetch('/api/customers/stats');
+    const data = await res.json();
+    if (!data.success) return;
+
+    const stats = data.data;
+    if (stats.totalWithPhones > 0) {
+      document.getElementById('stat-total-phones').innerText = stats.totalWithPhones.toLocaleString();
+      document.getElementById('stat-total-messages').innerText = stats.totalMessages.toLocaleString();
+
+      let assignedCount = 0;
+      if (stats.salesBreakdown) {
+        Object.values(stats.salesBreakdown).forEach((cnt) => (assignedCount += Number(cnt)));
+      }
+      document.getElementById('stat-total-assigned').innerText = assignedCount.toLocaleString();
+      document.getElementById('stat-pending-assigned').innerText = Math.max(0, stats.totalWithPhones - assignedCount).toLocaleString();
+
+      SALES_OPTIONS.forEach((sales) => {
+        const el = document.getElementById(`team-count-${sales.name}`);
+        if (el) {
+          const count = (stats.salesBreakdown && stats.salesBreakdown[sales.name]) || 0;
+          el.innerText = `${count}`;
+        }
+      });
+
+      renderVehicleChart(stats.vehicleBreakdown);
+      renderSalesChart(stats.salesBreakdown);
+    }
+  } catch (err) {
+    console.warn('Silent stats fetch fallback');
+  }
+}
+
+async function loadCustomers() {
+  try {
+    const res = await fetch('/api/customers?limit=50');
+    const data = await res.json();
+
+    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+      const merged = mergeCustomerRecords(data.data);
+      state.cachedCustomers = merged;
+    }
+    filterAndRenderLocal();
+  } catch (err) {
+    filterAndRenderLocal();
+  }
+}
+
+// -------------------------------------------------------------
+// TABLE RENDERER
+// -------------------------------------------------------------
+
+function renderTableWithCustomers(customers) {
+  const tbody = document.getElementById('customer-table-body');
+  if (!tbody) return;
+
+  if (customers.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" class="px-5 py-12 text-center text-slate-500">
+          <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 text-slate-600"></i>
+          <p class="font-medium text-slate-400">ยังไม่มีเคสลูกค้าที่ให้เบอร์โทร</p>
+          <p class="text-xs text-slate-500 mt-1">ระบบจะบันทึกและแสดงเคสลงตารางนี้ทันทีที่ลูกค้าส่งเบอร์โทรเข้ามาใน Pancake!</p>
+        </td>
+      </tr>
+    `;
+    initLucide();
+    return;
+  }
+
+  tbody.innerHTML = customers.map((c) => {
+    const primaryPhone = c.primaryPhone || (c.phones && c.phones[0]?.phoneNumber) || '-';
+    const dateDisplay = c.receivedDate || (c.lastContactAt ? new Date(c.lastContactAt).toLocaleDateString('th-TH') : '-');
+    const timeDisplay = c.receivedTime || (c.lastContactAt ? new Date(c.lastContactAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-');
+    const vehicle = c.interestedVehicle || 'หัวลาก';
+    const source = c.leadSource || 'FB เคพีศรีราชา';
+
+    const sourceBadge = source.includes('LINE')
+      ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800 flex items-center w-fit"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1"></span>LINE OA</span>`
+      : source.includes('TikTok')
+      ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-800 text-pink-400 border border-pink-900 flex items-center w-fit"><span class="w-1.5 h-1.5 rounded-full bg-pink-400 mr-1"></span>TikTok</span>`
+      : `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-950/80 text-blue-400 border border-blue-800 flex items-center w-fit"><span class="w-1.5 h-1.5 rounded-full bg-blue-400 mr-1"></span>FB เคพี</span>`;
+
+    const vehicleOptionsHtml = VEHICLE_OPTIONS.map((v) =>
+      `<option value="${v}" ${vehicle === v ? 'selected' : ''}>${v}</option>`
+    ).join('');
+
+    const salesOptionsHtml = `
+      <option value="" ${!c.assignedSales ? 'selected' : ''}>-- ยังไม่จ่ายงาน --</option>
+      ${SALES_OPTIONS.map((s) => `
+        <option value="${s.name}" ${c.assignedSales === s.name ? 'selected' : ''}>
+          ${s.name}
+        </option>
+      `).join('')}
+    `;
+
+    return `
+      <tr class="table-row-hover border-b border-slate-800/80 transition-colors" data-customer-id="${c.id}">
+        <td class="px-4 py-3 text-xs text-slate-300 font-mono">${escapeHtml(dateDisplay)}</td>
+        <td class="px-4 py-3 text-xs text-slate-400 font-mono">${escapeHtml(timeDisplay)}</td>
+        <td class="px-4 py-3">${sourceBadge}</td>
+        <td class="px-4 py-3">
+          <div class="flex items-center space-x-2">
+            <span class="font-semibold text-slate-100 text-sm">${escapeHtml(c.name || 'ลูกค้าใหม่')}</span>
+          </div>
+        </td>
+        <td class="px-4 py-3">
+          <span class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono font-bold text-xs tracking-wider">
+            ${formatPhoneDisplay(primaryPhone)}
+          </span>
+        </td>
+        <td class="px-4 py-3">
+          <select class="vehicle-select px-2.5 py-1 rounded-lg bg-dark-900 border border-slate-700 text-slate-200 text-xs focus:outline-none focus:border-brand-500 font-medium" data-customer-id="${c.id}">
+            ${vehicleOptionsHtml}
+          </select>
+        </td>
+        <td class="px-4 py-3">
+          <select class="sales-select px-2.5 py-1 rounded-lg bg-dark-900 border border-slate-700 text-xs font-bold focus:outline-none focus:border-brand-500 transition-colors ${c.assignedSales ? 'text-brand-400 border-brand-500/50' : 'text-slate-400'}" data-customer-id="${c.id}">
+            ${salesOptionsHtml}
+          </select>
+        </td>
+        <td class="px-4 py-3">
+          <div class="flex items-center space-x-1.5">
+            <button class="btn-copy-line px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 text-[11px] font-semibold transition-all flex items-center space-x-1" data-customer-id="${c.id}" title="คัดลอกสรุปเคสส่งกลุ่ม LINE">
+              <i data-lucide="send" class="w-3 h-3"></i>
+              <span>ส่งให้เซลล์</span>
+            </button>
+            <button class="btn-delete-lead p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 transition-colors" data-customer-id="${c.id}" title="ลบเคสนี้">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  initLucide();
+  attachTableEventHandlers();
+}
+
+function attachTableEventHandlers() {
+  // Sales assignment dropdown change
+  document.querySelectorAll('.sales-select').forEach((sel) => {
+    sel.addEventListener('change', async (e) => {
+      const custId = e.target.getAttribute('data-customer-id');
+      const salesName = e.target.value;
+
+      const list = getLocalCustomers();
+      const item = list.find((c) => c.id === custId || c.pancakeCustomerId === custId);
+      if (item) {
+        item.assignedSales = salesName || null;
+        saveLocalCustomers(list);
+        updateLocalStats(list);
+      }
+
+      if (salesName) {
+        sel.className = 'sales-select px-2.5 py-1 rounded-lg bg-dark-900 border border-brand-500/50 text-brand-400 text-xs font-bold focus:outline-none';
+        showToast(`จ่ายงานให้เซลล์ "${salesName}" เรียบร้อยแล้ว`, 'success');
+      } else {
+        sel.className = 'sales-select px-2.5 py-1 rounded-lg bg-dark-900 border border-slate-700 text-slate-400 text-xs font-bold focus:outline-none';
+      }
+    });
+  });
+
+  // Vehicle dropdown change
+  document.querySelectorAll('.vehicle-select').forEach((sel) => {
+    sel.addEventListener('change', async (e) => {
+      const custId = e.target.getAttribute('data-customer-id');
+      const vehicle = e.target.value;
+
+      const list = getLocalCustomers();
+      const item = list.find((c) => c.id === custId || c.pancakeCustomerId === custId);
+      if (item) {
+        item.interestedVehicle = vehicle;
+        saveLocalCustomers(list);
+        updateLocalStats(list);
+        showToast(`เปลี่ยนรุ่นรถที่สนใจเป็น "${vehicle}" เรียบร้อย`, 'info');
+      }
+    });
+  });
+
+  // 1-Click Copy LINE Forward Text
+  document.querySelectorAll('.btn-copy-line').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const custId = btn.getAttribute('data-customer-id');
+      const list = getLocalCustomers();
+      const c = list.find((item) => item.id === custId || item.pancakeCustomerId === custId);
+      if (!c) return;
+
+      const primaryPhone = c.primaryPhone || (c.phones && c.phones[0]?.phoneNumber) || '-';
+      const sales = c.assignedSales || 'ยังไม่ระบุ';
+      const vehicle = c.interestedVehicle || 'หัวลาก';
+      const dateDisplay = c.receivedDate || new Date().toLocaleDateString('th-TH');
+      const timeDisplay = c.receivedTime || new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+      const lineMessage = `🎯 [ส่งต่อเคสลูกค้า KP Sriracha]
+👤 ชื่อลูกค้า: ${c.name || 'ลูกค้าใหม่'}
+📞 เบอร์โทร: ${primaryPhone}
+🚛 รถที่สนใจ: ${vehicle}
+👨‍💼 เซลล์ผู้ดูแล: ${sales}
+📱 ช่องทาง: ${c.leadSource || 'FB เคพีศรีราชา'}
+⏰ วันที่: ${dateDisplay} เวลา ${timeDisplay}
+💬 ข้อความ: ${c.notes || '-'}`;
+
+      navigator.clipboard.writeText(lineMessage).then(() => {
+        showToast(`📋 คัดลอกเคสคุณ "${c.name}" พร้อมส่งให้เซลล์ใน LINE แล้ว!`, 'success');
+      });
+    });
+  });
+
+  // Delete single lead
+  document.querySelectorAll('.btn-delete-lead').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const custId = btn.getAttribute('data-customer-id');
+      const list = getLocalCustomers().filter((c) => c.id !== custId && c.pancakeCustomerId !== custId);
+      saveLocalCustomers(list);
+      filterAndRenderLocal();
+      updateLocalStats(list);
+      showToast('ลบเคสลูกค้าเรียบร้อยแล้ว', 'info');
+    });
+  });
+}
+
+// -------------------------------------------------------------
+// QUICK ADD LEAD MODAL
+// -------------------------------------------------------------
+
+function openQuickAddModal() {
+  const modal = document.getElementById('quick-add-modal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeQuickAddModal() {
+  const modal = document.getElementById('quick-add-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function handleQuickAddSubmit(e) {
+  e.preventDefault();
+
+  const name = document.getElementById('qa-name').value.trim();
+  const phone = document.getElementById('qa-phone').value.trim();
+  const source = document.getElementById('qa-source').value;
+  const vehicle = document.getElementById('qa-vehicle').value;
+  const sales = document.getElementById('qa-sales').value;
+  const notes = document.getElementById('qa-notes').value.trim();
+
+  if (!phone) {
+    showToast('กรุณากรอกเบอร์โทรศัพท์', 'error');
+    return;
+  }
+
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  const now = new Date();
+  const dateStr = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const leadId = 'lead_' + Date.now();
+
+  const newLead = {
+    id: leadId,
+    pancakeCustomerId: 'manual_' + Date.now(),
+    name: name || 'ลูกค้าใหม่',
+    primaryPhone: cleanPhone,
+    interestedVehicle: vehicle,
+    assignedSales: sales || null,
+    leadSource: source,
+    receivedDate: dateStr,
+    receivedTime: timeStr,
+    notes: notes,
+    lastContactAt: now.toISOString(),
+    phones: [{ phoneNumber: cleanPhone, carrier: 'AIS' }],
+    messages: notes ? [{ id: 'm_' + Date.now(), senderType: 'CUSTOMER', text: notes, sentAt: now.toISOString() }] : [],
+  };
+
+  const list = getLocalCustomers();
+  list.unshift(newLead);
+  saveLocalCustomers(list);
+  filterAndRenderLocal();
+  closeQuickAddModal();
+  document.getElementById('quick-add-form').reset();
+
+  showToast(`บันทึกเคส "${name}" เรียบร้อยแล้ว!`, 'success');
+
+  // Background server sync
+  try {
+    await fetch('/api/webhooks/pancake', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event: 'manual_lead',
+        page_name: source,
+        customer: { id: newLead.pancakeCustomerId, name: newLead.name, phone_number: newLead.primaryPhone, notes: newLead.notes },
+        message: { id: 'msg_' + Date.now(), text: `${notes || ''} สนใจ ${vehicle} เบอร์ ${phone}`, inserted_at: now.toISOString() },
+      }),
+    });
+  } catch {
+    // silent
+  }
+}
+
+function closeCustomerModal() {
+  document.getElementById('customer-modal').classList.add('hidden');
+  state.activeCustomerId = null;
+}
+
+// -------------------------------------------------------------
+// WEBHOOK SIMULATOR
+// -------------------------------------------------------------
+
+function openSimulatorModal() {
+  document.getElementById('simulator-modal').classList.remove('hidden');
+}
+
+function closeSimulatorModal() {
+  document.getElementById('simulator-modal').classList.add('hidden');
+  document.getElementById('simulator-response-box').classList.add('hidden');
+}
+
+function initSimulatorPayload(presetKey) {
+  const payload = PRESETS[presetKey] || PRESETS.tractor;
+  document.getElementById('simulator-payload-editor').value = JSON.stringify(payload, null, 2);
+}
+
+async function sendSimulatedWebhook() {
+  const editor = document.getElementById('simulator-payload-editor');
+  const responseBox = document.getElementById('simulator-response-box');
+  const btn = document.getElementById('btn-send-simulated-webhook');
+
+  try {
+    const rawJson = editor.value;
+    const parsedPayload = JSON.parse(rawJson);
+
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>กำลังส่ง...</span>`;
+    initLucide();
+
+    const res = await fetch('/api/webhooks/pancake?secret=local_dev_pancake_secret_key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(parsedPayload),
+    });
+
+    const data = await res.json();
+    responseBox.classList.remove('hidden');
+
+    if (res.ok) {
+      responseBox.className = 'p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 font-mono text-[11px] block';
+      responseBox.innerHTML = `✅ HTTP ${res.status}: รับ Webhook สำเร็จ! กำลังสกัดเบอร์โทรและอัปเดตลงตาราง...`;
+      showToast('ส่งแชททดสอบสำเร็จ! ตาราง CRM ได้รับข้อมูลแล้ว', 'success');
+
+      setTimeout(() => {
+        loadStats();
+        loadCustomers();
+      }, 500);
+    } else {
+      responseBox.className = 'p-3 rounded-xl bg-red-950/40 border border-red-500/40 text-red-400 font-mono text-[11px] block';
+      responseBox.innerHTML = `❌ HTTP ${res.status}: ${data.error || 'เกิดข้อผิดพลาด'}`;
+    }
+  } catch (err) {
+    responseBox.classList.remove('hidden');
+    responseBox.className = 'p-3 rounded-xl bg-red-950/40 border border-red-500/40 text-red-400 font-mono text-[11px] block';
+    responseBox.innerHTML = `❌ JSON ไม่ถูกต้อง: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i data-lucide="send" class="w-3.5 h-3.5"></i><span>ส่งแชททดสอบ</span>`;
+    initLucide();
+  }
+}
+
+// -------------------------------------------------------------
+// VISUALIZATIONS (Chart.js)
+// -------------------------------------------------------------
+
+function renderVehicleChart(breakdown = {}) {
+  const ctx = document.getElementById('vehicleChart');
+  if (!ctx) return;
+
+  const labels = Object.keys(breakdown).length > 0 ? Object.keys(breakdown) : ['หัวลาก', 'ตู้10', 'หาง', 'ดั้ม'];
+  const values = Object.keys(breakdown).length > 0 ? Object.values(breakdown) : [8, 6, 4, 2];
+
+  if (state.vehicleChartInstance) {
+    state.vehicleChartInstance.destroy();
+  }
+
+  state.vehicleChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [
+        {
+          data: values,
+          backgroundColor: ['#f97316', '#3b82f6', '#10b981', '#a855f7', '#ec4899', '#14b8a6', '#f43f5e', '#eab308'],
+          borderWidth: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#94a3b8', font: { size: 10 } },
+        },
+      },
+      cutout: '70%',
+    },
+  });
+}
+
+function renderSalesChart(breakdown = {}) {
+  const ctx = document.getElementById('salesChart');
+  if (!ctx) return;
+
+  const labels = SALES_OPTIONS.map((s) => s.name);
+  const values = labels.map((name) => (breakdown && breakdown[name]) || 0);
+  const colors = SALES_OPTIONS.map((s) => s.chartColor);
+
+  if (state.salesChartInstance) {
+    state.salesChartInstance.destroy();
+  }
+
+  state.salesChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'จำนวนเคสที่ได้รับ',
+          data: values,
+          backgroundColor: colors,
+          borderRadius: 6,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } },
+        y: {
+          ticks: { color: '#94a3b8', font: { size: 10 }, stepSize: 1 },
+          grid: { color: '#334155' },
+          beginAtZero: true,
+        },
+      },
+      plugins: { legend: { display: false } },
+    },
+  });
+}
+
+// -------------------------------------------------------------
+// HELPERS
+// -------------------------------------------------------------
+
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+
+  const borderColors = {
+    success: 'border-emerald-500/50 bg-emerald-950/90 text-emerald-300',
+    error: 'border-red-500/50 bg-red-950/90 text-red-300',
+    info: 'border-indigo-500/50 bg-indigo-950/90 text-indigo-300',
+  };
+
+  toast.className = `px-4 py-2.5 rounded-xl border backdrop-blur-md shadow-xl text-xs font-medium flex items-center space-x-2 animate-in slide-in-from-bottom-3 duration-200 ${borderColors[type] || borderColors.info}`;
+  toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
+
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.remove();
+  }, 3500);
+}
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatPhoneDisplay(num) {
+  if (!num) return '-';
+  const clean = String(num).replace(/[^0-9]/g, '');
+  if (clean.length === 10) {
+    return `${clean.substring(0, 3)}-${clean.substring(3, 6)}-${clean.substring(6)}`;
+  }
+  return num;
+}
+  </script>
+</body>
+</html>
