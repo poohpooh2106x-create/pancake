@@ -8,20 +8,9 @@ import healthRoutes from './routes/health.routes';
 import { requestLoggerMiddleware } from './middleware/logger.middleware';
 import { errorHandler } from './middleware/error.middleware';
 import { AuthenticatedWebhookRequest } from './middleware/auth.middleware';
-import { ensureDatabaseSchema } from './db/prisma';
 
 export function createApp(): Application {
   const app = express();
-
-  // Ensure DB Tables on startup / cold start
-  app.use(async (_req, _res, next) => {
-    try {
-      await ensureDatabaseSchema();
-    } catch {
-      // ignore
-    }
-    next();
-  });
 
   // Security Middleware
   app.use(
@@ -55,7 +44,7 @@ export function createApp(): Application {
 
   app.use('/api/webhooks', webhookRoutes);
   app.use('/webhooks', webhookRoutes);
-  app.use('/api', webhookRoutes); // Catches /api/pancake, /api/logs
+  app.use('/api', webhookRoutes);
 
   app.use('/api/customers', customerRoutes);
   app.use('/customers', customerRoutes);
