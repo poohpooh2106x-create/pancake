@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: pancake-crm-service
+    env: node
+    plan: free
+    buildCommand: npm ci && npx prisma generate && npm run build && cp -r src/public dist/public
+    startCommand: npx prisma db push && node dist/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:./dev.db
+      - key: PANCAKE_WEBHOOK_SECRET
+        sync: false
+      - key: GOOGLE_SHEETS_ENABLED
+        value: false

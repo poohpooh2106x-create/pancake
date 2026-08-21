@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  pancake-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pancake-crm-service
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - LOG_LEVEL=info
+      - DATABASE_URL=file:/app/data/pancake.db
+      - PANCAKE_WEBHOOK_SECRET=${PANCAKE_WEBHOOK_SECRET:-local_pancake_secret}
+      - PANCAKE_API_ACCESS_TOKEN=${PANCAKE_API_ACCESS_TOKEN:-}
+      - PANCAKE_PAGE_IDS=${PANCAKE_PAGE_IDS:-}
+      - GOOGLE_SHEETS_ENABLED=${GOOGLE_SHEETS_ENABLED:-false}
+      - GOOGLE_SHEETS_SPREADSHEET_ID=${GOOGLE_SHEETS_SPREADSHEET_ID:-}
+      - GOOGLE_SERVICE_ACCOUNT_EMAIL=${GOOGLE_SERVICE_ACCOUNT_EMAIL:-}
+      - GOOGLE_PRIVATE_KEY=${GOOGLE_PRIVATE_KEY:-}
+      - FALLBACK_SYNC_ENABLED=${FALLBACK_SYNC_ENABLED:-false}
+    volumes:
+      - pancake-data:/app/data
+
+volumes:
+  pancake-data:
+    driver: local

@@ -1,0 +1,141 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// 1. Core Customer / Lead Profile (Aligned with Sales Sheet Workflow)
+// ---------------------------------------------------------------------------
+model Customer {
+  id                   String          @id @default(cuid())
+  pancakeCustomerId    String          @unique
+  pageId               String
+  platform             String          // "FACEBOOK" | "LINE" | "TIKTOK" | "WEB" | "OTHER"
+  leadSource           String          @default("FB เคพีศรีราชา") // "FB เคพีศรีราชา" | "TikTokเคพีศรีราชา" | "LOA เคพี" | "FB เฮียตั้มรถตัด" | etc.
+  name                 String
+  avatarUrl            String?
+  profileUrl           String?
+  gender               String?
+  primaryPhone         String?         // Standard local: 0812345678 or 081-2345678
+  
+  // Sales & Vehicle Workflow Fields
+  interestedVehicle    String?         // "หัวลาก" | "ตู้10" | "หาง" | "ดั้ม" | "6ล้อ" | "10ล้อ" | "รถตัด" etc.
+  assignedSales        String?         // "วุธ" | "อั๋น" | "ท้อป" | "จิ๊บ" | "เกด"
+  leadStatus           String          @default("NEW") // "NEW" | "ASSIGNED" | "CONTACTED" | "CLOSED"
+  receivedDate         String?         // e.g. "21/8/2026"
+  receivedTime         String?         // e.g. "11:25"
+
+  assignedAdminName    String?
+  assignedAdminId      String?
+  tags                 String          @default("[]") // JSON string array of tags
+  notes                String?
+  firstContactAt       DateTime        @default(now())
+  lastContactAt        DateTime        @default(now())
+  totalMessages        Int             @default(0)
+  totalOrders          Int             @default(0)
+  totalSpent           Float           @default(0.0)
+  googleSheetsRowIndex Int?
+  lastSyncedToSheetsAt DateTime?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  phones               CustomerPhone[]
+  messages             Message[]
+  orders               Order[]
+
+  @@index([pageId])
+  @@index([platform])
+  @@index([leadSource])
+  @@index([assignedSales])
+  @@index([interestedVehicle])
+  @@index([primaryPhone])
+  @@index([lastContactAt])
+}
+
+// ---------------------------------------------------------------------------
+// 2. Extracted Customer Phone Numbers
+// ---------------------------------------------------------------------------
+model CustomerPhone {
+  id              String    @id @default(cuid())
+  customerId      String
+  phoneNumber     String    // 0812345678
+  e164Format      String    // +66812345678
+  rawExtracted    String    // Raw string: "081-234 5678"
+  carrier         String?   // "AIS" | "TRUE_DTAC" | "NT" | "UNKNOWN"
+  isPrimary       Boolean   @default(false)
+  sourceMessageId String?
+  createdAt       DateTime  @default(now())
+
+  customer        Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, phoneNumber])
+  @@index([phoneNumber])
+}
+
+// ---------------------------------------------------------------------------
+// 3. Conversation Messages & Audit Log
+// ---------------------------------------------------------------------------
+model Message {
+  id               String    @id @default(cuid())
+  pancakeMessageId String?   @unique
+  conversationId   String
+  customerId       String
+  senderType       String    // "CUSTOMER" | "ADMIN" | "BOT"
+  text             String
+  extractedPhones  String    @default("[]")
+  sentAt           DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+
+  customer         Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([customerId])
+  @@index([sentAt])
+}
+
+// ---------------------------------------------------------------------------
+// 4. Orders Created via Pancake POS
+// ---------------------------------------------------------------------------
+model Order {
+  id               String    @id @default(cuid())
+  pancakeOrderId   String    @unique
+  customerId       String
+  orderStatus      String    // "NEW" | "CONFIRMED" | "SHIPPED" | "COMPLETED" | "CANCELLED"
+  totalAmount      Float     @default(0.0)
+  recipientName    String?
+  recipientPhone   String?
+  shippingAddress  String?
+  trackingNumber   String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  customer         Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([orderStatus])
+}
+
+// ---------------------------------------------------------------------------
+// 5. Inbound Webhook Event Audit Log
+// ---------------------------------------------------------------------------
+model WebhookEventLog {
+  id               String    @id @default(cuid())
+  eventType        String
+  pageId           String?
+  payload          String
+  status           String
+  errorMessage     String?
+  processingTimeMs Int?
+  receivedAt       DateTime  @default(now())
+
+  @@index([eventType])
+  @@index([status])
+  @@index([receivedAt])
+}
