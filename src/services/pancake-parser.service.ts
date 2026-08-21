@@ -1,5 +1,4 @@
 import {
-  PancakeWebhookPayload,
   PancakePlatform,
 } from '../types/pancake.types';
 import { ParsedCustomerData, ExtractedPhoneNumber } from '../types/customer.types';
@@ -93,6 +92,7 @@ export class PancakeParserService {
       const rawMessage = root.message || payload.message || {};
       const rawOrder = root.order || payload.order || {};
       const rawConversation = root.conversation || payload.conversation || {};
+      const fields = root.fields || payload.fields || {};
 
       // Recursively search for phone numbers in the entire payload
       const allStrings = this.extractAllStrings(payload);
@@ -110,6 +110,8 @@ export class PancakeParserService {
 
       // Determine Pancake Customer ID
       let customerId = String(
+        fields.id ||
+        fields.PartnerRecordID ||
         rawCustomer.id ||
         rawCustomer.psid ||
         rawCustomer.customer_id ||
@@ -144,6 +146,8 @@ export class PancakeParserService {
 
       // Customer Name
       const customerName = String(
+        fields.NAME ||
+        fields.name ||
         rawCustomer.name ||
         rawMessage.from?.name ||
         rawOrder.customer_name ||
@@ -151,6 +155,8 @@ export class PancakeParserService {
         rawOrder.shipping_address?.recipient_name ||
         root.customer_name ||
         root.buyer_name ||
+        root.NAME ||
+        root.name ||
         'ลูกค้าใหม่'
       ).trim();
 
