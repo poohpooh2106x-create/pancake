@@ -1,17 +1,15 @@
 const https = require('https');
 
 const data = JSON.stringify({
-  event: 'new_message',
-  page_name: 'FB เคพีศรีราชา',
-  platform: 'facebook',
-  customer: {
-    id: 'cust_real_test_001',
-    name: 'คุณสมชาย ขนส่งศรีราชา',
-  },
-  message: {
-    id: 'msg_real_001',
-    text: 'สวัสดีครับแอดมิน สนใจรถหัวลากครับ สภาพพร้อมใช้งานมั้ย ติดต่อเบอร์ 081-999-8888 ครับ',
-    inserted_at: new Date().toISOString(),
+  fields: {
+    id: 'lead_pancake_crm_999',
+    NAME: 'Wichaphat Chomphu',
+    PHONE: [
+      {
+        VALUE: '0820876792',
+        VALUE_TYPE: 'WORK',
+      },
+    ],
   },
 });
 
