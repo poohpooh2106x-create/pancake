@@ -95,14 +95,17 @@ model Order {
 }
 
 model WebhookEventLog {
-  id          String    @id @default(uuid())
-  eventId     String?
-  eventType   String
-  platform    String
-  payload     String    // Stored as JSON string
-  isProcessed Boolean   @default(false)
-  error       String?
-  receivedAt  DateTime  @default(now())
+  id               String    @id @default(uuid())
+  eventId          String?
+  pageId           String?
+  eventType        String
+  platform         String?
+  payload          String    // Stored as JSON string
+  status           String?   @default("SUCCESS") // SUCCESS, FAILED
+  errorMessage     String?
+  processingTimeMs Int?
+  isProcessed      Boolean   @default(true)
+  receivedAt       DateTime  @default(now())
 
   @@index([eventType])
   @@index([receivedAt])
