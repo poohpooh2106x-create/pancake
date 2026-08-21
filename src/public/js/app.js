@@ -910,19 +910,24 @@ async function sendSimulatedWebhook() {
 // -------------------------------------------------------------
 
 function renderVehicleChart(breakdown = {}) {
-  const ctx = document.getElementById('vehicleDemandChart');
+  const ctx = document.getElementById('vehicleChart') || document.getElementById('vehicleDemandChart');
   if (!ctx) return;
 
-  const labels = Object.keys(breakdown);
-  const values = Object.values(breakdown);
-
-  if (state.vehicleChartInstance) {
-    state.vehicleChartInstance.destroy();
-  }
+  const validEntries = Object.entries(breakdown).filter(([k, v]) => v > 0);
+  let labels = validEntries.map(([k]) => k);
+  let values = validEntries.map(([, v]) => v);
 
   if (labels.length === 0) {
-    labels.push('หัวลาก', 'ตู้10', 'หาง', 'ดั้ม');
-    values.push(0, 0, 0, 0);
+    labels = ['หัวลาก', 'ตู้10', 'หาง', 'ดั้ม'];
+    values = [0, 0, 0, 0];
+  }
+
+  if (state.vehicleChartInstance) {
+    try {
+      state.vehicleChartInstance.destroy();
+    } catch {
+      // ignore
+    }
   }
 
   state.vehicleChartInstance = new Chart(ctx, {
@@ -932,7 +937,7 @@ function renderVehicleChart(breakdown = {}) {
       datasets: [
         {
           data: values,
-          backgroundColor: ['#0ea5e9', '#f97316', '#10b981', '#a855f7', '#f43f5e', '#eab308', '#64748b'],
+          backgroundColor: ['#0ea5e9', '#f97316', '#10b981', '#a855f7', '#f43f5e', '#eab308', '#64748b', '#06b6d4'],
           borderWidth: 0,
         },
       ],
@@ -943,16 +948,16 @@ function renderVehicleChart(breakdown = {}) {
       plugins: {
         legend: {
           position: 'right',
-          labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10 },
+          labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 12 },
         },
       },
-      cutout: '70%',
+      cutout: '65%',
     },
   });
 }
 
 function renderSalesChart(breakdown = {}) {
-  const ctx = document.getElementById('salesPerformanceChart');
+  const ctx = document.getElementById('salesChart') || document.getElementById('salesPerformanceChart');
   if (!ctx) return;
 
   const labels = SALES_OPTIONS.map((s) => s.name);
@@ -960,7 +965,11 @@ function renderSalesChart(breakdown = {}) {
   const colors = SALES_OPTIONS.map((s) => s.chartColor);
 
   if (state.salesChartInstance) {
-    state.salesChartInstance.destroy();
+    try {
+      state.salesChartInstance.destroy();
+    } catch {
+      // ignore
+    }
   }
 
   state.salesChartInstance = new Chart(ctx, {
@@ -969,6 +978,7 @@ function renderSalesChart(breakdown = {}) {
       labels,
       datasets: [
         {
+          label: 'จำนวนเคสที่ได้รับ',
           data: values,
           backgroundColor: colors,
           borderRadius: 6,
@@ -980,8 +990,8 @@ function renderSalesChart(breakdown = {}) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
-        y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', stepSize: 1 } },
+        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: 'bold' } } },
+        y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', stepSize: 1 }, beginAtZero: true },
       },
     },
   });
