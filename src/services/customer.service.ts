@@ -392,56 +392,35 @@ export class CustomerService {
   }
 
   /**
-   * Get CRM summary statistics (Only counts leads with phone numbers)
+   * Get CRM summary statistics (Ultra-fast in-memory aggregation)
    */
   public static async getStats(): Promise<CustomerStats> {
     await ensureDatabaseSchema();
 
     try {
-      const [
-        totalWithPhones,
-        totalMessages,
-        totalOrders,
-        platformCounts,
-        vehicleCounts,
-        salesCounts,
-      ] = await Promise.all([
+      const [totalWithPhones, totalMessages, totalOrders, customers] = await Promise.all([
         prisma.customer.count({ where: { primaryPhone: { not: null } } }),
         prisma.message.count(),
         prisma.order.count(),
-        prisma.customer.groupBy({
-          by: ['platform'],
+        prisma.customer.findMany({
           where: { primaryPhone: { not: null } },
-          _count: { platform: true },
-        }),
-        prisma.customer.groupBy({
-          by: ['interestedVehicle'],
-          where: { primaryPhone: { not: null }, interestedVehicle: { not: null } },
-          _count: { interestedVehicle: true },
-        }),
-        prisma.customer.groupBy({
-          by: ['assignedSales'],
-          where: { primaryPhone: { not: null }, assignedSales: { not: null } },
-          _count: { assignedSales: true },
+          select: { platform: true, interestedVehicle: true, assignedSales: true },
         }),
       ]);
 
       const platformBreakdown: Record<string, number> = {};
-      for (const p of platformCounts) {
-        platformBreakdown[p.platform] = p._count.platform;
-      }
-
       const vehicleBreakdown: Record<string, number> = {};
-      for (const v of vehicleCounts) {
-        if (v.interestedVehicle) {
-          vehicleBreakdown[v.interestedVehicle] = v._count.interestedVehicle;
-        }
-      }
-
       const salesBreakdown: Record<string, number> = {};
-      for (const s of salesCounts) {
-        if (s.assignedSales) {
-          salesBreakdown[s.assignedSales] = s._count.assignedSales;
+
+      for (const c of customers) {
+        if (c.platform) {
+          platformBreakdown[c.platform] = (platformBreakdown[c.platform] || 0) + 1;
+        }
+        if (c.interestedVehicle) {
+          vehicleBreakdown[c.interestedVehicle] = (vehicleBreakdown[c.interestedVehicle] || 0) + 1;
+        }
+        if (c.assignedSales) {
+          salesBreakdown[c.assignedSales] = (salesBreakdown[c.assignedSales] || 0) + 1;
         }
       }
 
