@@ -1,10 +1,5 @@
-/**
- * Pancake Customer Intelligence & Sales Lead CRM Controller
- * High-performance, 100% Persistent Local & Cloud Synchronized Engine
- */
-
 // Local Storage Persistent Key
-const STORAGE_KEY = 'kp_crm_customers_permanent_v2';
+const STORAGE_KEY = 'kp_crm_customers_permanent_v3';
 
 // Preset Sales Team (8 Sales members)
 const SALES_OPTIONS = [
@@ -195,37 +190,46 @@ function saveLocalCustomers(list) {
 
 function mergeCustomerRecords(serverRecords) {
   const localMap = new Map();
-  const localList = getLocalCustomers();
+  let localList = getLocalCustomers();
+
+  if (!localList || localList.length === 0) {
+    localList = [...DEFAULT_INITIAL_LEADS];
+  }
 
   for (const item of localList) {
     const key = item.pancakeCustomerId || item.primaryPhone || item.id;
     if (key) localMap.set(key, item);
   }
 
-  for (const item of serverRecords) {
-    const key = item.pancakeCustomerId || item.primaryPhone || item.id;
-    if (!key) continue;
+  if (Array.isArray(serverRecords) && serverRecords.length > 0) {
+    for (const item of serverRecords) {
+      const key = item.pancakeCustomerId || item.primaryPhone || item.id;
+      if (!key) continue;
 
-    if (localMap.has(key)) {
-      const existing = localMap.get(key);
-      // Keep local assignment if server hasn't assigned it yet
-      localMap.set(key, {
-        ...existing,
-        ...item,
-        assignedSales: existing.assignedSales || item.assignedSales,
-        interestedVehicle: existing.interestedVehicle || item.interestedVehicle,
-        notes: existing.notes || item.notes,
-      });
-    } else {
-      localMap.set(key, item);
+      if (localMap.has(key)) {
+        const existing = localMap.get(key);
+        localMap.set(key, {
+          ...existing,
+          ...item,
+          assignedSales: existing.assignedSales || item.assignedSales,
+          interestedVehicle: existing.interestedVehicle || item.interestedVehicle,
+          notes: existing.notes || item.notes,
+        });
+      } else {
+        localMap.set(key, item);
+      }
     }
   }
 
-  const merged = Array.from(localMap.values()).sort((a, b) => {
-    const timeA = new Date(a.lastContactAt || a.firstContactAt || a.createdAt).getTime();
-    const timeB = new Date(b.lastContactAt || b.firstContactAt || b.createdAt).getTime();
+  let merged = Array.from(localMap.values()).sort((a, b) => {
+    const timeA = new Date(a.lastContactAt || a.firstContactAt || a.createdAt || 0).getTime();
+    const timeB = new Date(b.lastContactAt || b.firstContactAt || b.createdAt || 0).getTime();
     return timeB - timeA;
   });
+
+  if (merged.length === 0) {
+    merged = [...DEFAULT_INITIAL_LEADS];
+  }
 
   saveLocalCustomers(merged);
   return merged;
