@@ -7,7 +7,7 @@ const state = {
   page: 1,
   limit: 20,
   source: 'ALL',
-  hasPhone: false,
+  hasPhone: true, // STRICT: Default to showing leads with phone numbers only
   search: '',
   totalPages: 1,
   totalCustomers: 0,
@@ -169,13 +169,6 @@ function initEventListeners() {
     });
   });
 
-  // Has Phone Checkbox
-  document.getElementById('filter-has-phone').addEventListener('change', (e) => {
-    state.hasPhone = e.target.checked;
-    state.page = 1;
-    loadCustomers();
-  });
-
   // Refresh Table Button
   document.getElementById('btn-refresh-table').addEventListener('click', () => {
     loadStats();
@@ -290,8 +283,7 @@ async function loadStats() {
 
     const stats = data.data;
 
-    // Update KPI Numbers
-    document.getElementById('stat-total-customers').innerText = stats.totalCustomers.toLocaleString();
+    // Update KPI Numbers (Only counting leads with verified phone numbers)
     document.getElementById('stat-total-phones').innerText = stats.totalWithPhones.toLocaleString();
     document.getElementById('stat-total-messages').innerText = stats.totalMessages.toLocaleString();
 
@@ -301,10 +293,8 @@ async function loadStats() {
     }
     document.getElementById('stat-total-assigned').innerText = assignedCount.toLocaleString();
 
-    const phoneRate = stats.totalCustomers > 0
-      ? Math.round((stats.totalWithPhones / stats.totalCustomers) * 100)
-      : 0;
-    document.getElementById('stat-phone-rate').innerText = `${phoneRate}%`;
+    const pendingCount = Math.max(0, stats.totalWithPhones - assignedCount);
+    document.getElementById('stat-pending-assigned').innerText = pendingCount.toLocaleString();
 
     // Update Sales Team Counters for all 8 members
     SALES_OPTIONS.forEach((sales) => {
@@ -330,7 +320,7 @@ async function loadCustomers() {
     <tr>
       <td colspan="8" class="px-5 py-8 text-center text-slate-500">
         <i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2 text-brand-500"></i>
-        <span>กำลังโหลดข้อมูลลูกค้า...</span>
+        <span>กำลังโหลดข้อมูลเคสลูกค้า...</span>
       </td>
     </tr>
   `;
@@ -343,7 +333,6 @@ async function loadCustomers() {
     });
 
     if (state.source !== 'ALL') params.append('lead_source', state.source);
-    if (state.hasPhone) params.append('has_phone', 'true');
     if (state.search) params.append('search', state.search);
 
     const res = await fetch(`/api/customers?${params.toString()}`);
@@ -359,7 +348,7 @@ async function loadCustomers() {
     state.totalCustomers = data.pagination.total || 0;
 
     // Update Pagination UI
-    document.getElementById('pagination-summary').innerText = `แสดง ${customers.length} จาก ${data.pagination.total} รายการ`;
+    document.getElementById('pagination-summary').innerText = `แสดง ${customers.length} จาก ${data.pagination.total} เคส`;
     document.getElementById('pagination-current-page').innerText = `${data.pagination.page} / ${state.totalPages}`;
     document.getElementById('btn-prev-page').disabled = data.pagination.page <= 1;
     document.getElementById('btn-next-page').disabled = data.pagination.page >= state.totalPages;
@@ -369,8 +358,8 @@ async function loadCustomers() {
         <tr>
           <td colspan="8" class="px-5 py-12 text-center text-slate-500">
             <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 text-slate-600"></i>
-            <p class="font-medium text-slate-400">ยังไม่มีข้อมูลลูกค้า</p>
-            <p class="text-xs text-slate-500 mt-1">กดปุ่ม "จำลองแชทลูกค้า (Simulator)" ด้านบน เพื่อทดสอบเพิ่มลูกค้าและสกัดเบอร์โทรได้ทันที!</p>
+            <p class="font-medium text-slate-400">ยังไม่มีเคสลูกค้าที่ให้เบอร์โทร</p>
+            <p class="text-xs text-slate-500 mt-1">ระบบจะบันทึกและแสดงเคสลงตารางนี้ทันทีที่ลูกค้าส่งเบอร์โทรเข้ามาในแชท!</p>
           </td>
         </tr>
       `;
@@ -397,7 +386,7 @@ function renderCustomerRow(c) {
   const timeStr = c.receivedTime || `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
 
   // Phone Column
-  let phoneHtml = '<span class="text-slate-500 text-xs italic">ยังไม่ได้เบอร์</span>';
+  let phoneHtml = '<span class="text-slate-500 text-xs italic">-</span>';
   if (c.primaryPhone) {
     const formatted = formatPhoneDisplay(c.primaryPhone);
     phoneHtml = `
@@ -536,7 +525,7 @@ function attachTableEventHandlers() {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const custId = btn.getAttribute('data-id');
-      const ok = confirm('คุณต้องการลบข้อมูลลูกค้ารายนี้ใช่หรือไม่?');
+      const ok = confirm('คุณต้องการลบข้อมูลเคสลูกค้ารายนี้ใช่หรือไม่?');
       if (!ok) return;
       await deleteCustomerById(custId);
     });
@@ -544,7 +533,7 @@ function attachTableEventHandlers() {
 
   // Send Sales Button (LINE Template Generator)
   document.querySelectorAll('.btn-send-sales').forEach((btn) => {
-    btn.addEventListener('click', async (e) => {
+    btn.addEventListener('click', async () => {
       e.stopPropagation();
       const custId = btn.getAttribute('data-id');
       try {
@@ -576,7 +565,7 @@ async function deleteCustomerById(customerId) {
     const res = await fetch(`/api/customers/${customerId}`, { method: 'DELETE' });
     const data = await res.json();
     if (data.success) {
-      showToast('ลบข้อมูลลูกค้าเรียบร้อยแล้ว', 'success');
+      showToast('ลบเคสลูกค้าเรียบร้อยแล้ว', 'success');
       loadStats();
       loadCustomers();
     } else {

@@ -5,7 +5,8 @@ import { GoogleSheetsService } from './google-sheets.service';
 
 export class CustomerService {
   /**
-   * Process parsed customer data: Upsert customer profile, save phones, store message & order
+   * Process parsed customer data:
+   * STRICT PHONE RULE: Only create/update CRM lead once a valid phone number is detected!
    */
   public static async processAndSaveCustomer(data: ParsedCustomerData): Promise<any> {
     const {
@@ -33,11 +34,21 @@ export class CustomerService {
     } = data;
 
     try {
-      // 1. Find existing customer or prepare to create
+      // 1. Find existing customer in database
       const existingCustomer = await prisma.customer.findUnique({
         where: { pancakeCustomerId },
         include: { phones: true },
       });
+
+      // If customer has NO phone number in this payload AND does NOT have a phone in database:
+      // Skip creating a CRM lead (do not count or display until customer provides a phone number!)
+      if (phoneNumbers.length === 0 && !existingCustomer?.primaryPhone) {
+        logger.info(
+          { pancakeCustomerId, customerName: name },
+          'No phone number detected yet. Skipping lead creation until customer provides phone number.'
+        );
+        return null;
+      }
 
       let customerId: string;
       const jsonTags = JSON.stringify(tags);
@@ -86,7 +97,7 @@ export class CustomerService {
           },
         });
       } else {
-        // Create new customer
+        // Create new customer lead ONLY because they provided a phone number!
         const newCustomer = await prisma.customer.create({
           data: {
             pancakeCustomerId,
@@ -187,8 +198,8 @@ export class CustomerService {
         },
       });
 
-      // 4. Trigger Google Sheets Sync (Async / Non-blocking)
-      if (fullCustomer) {
+      // 4. Trigger Google Sheets Sync (Only sync customers with valid primaryPhone)
+      if (fullCustomer && fullCustomer.primaryPhone) {
         GoogleSheetsService.syncCustomer(fullCustomer).catch((err) => {
           logger.error({ error: err.message, customerId }, 'Failed to sync customer to Google Sheets');
         });
@@ -202,7 +213,7 @@ export class CustomerService {
   }
 
   /**
-   * Delete a single customer and all associated relations
+   * Delete a single customer
    */
   public static async deleteCustomer(customerId: string): Promise<boolean> {
     try {
@@ -266,16 +277,17 @@ export class CustomerService {
       include: { phones: true },
     });
 
-    // Re-sync to Google Sheets with new sales info
-    GoogleSheetsService.syncCustomer(updated).catch((err) => {
-      logger.error({ error: err.message, customerId }, 'Failed syncing updated sales assignment to Sheets');
-    });
+    if (updated.primaryPhone) {
+      GoogleSheetsService.syncCustomer(updated).catch((err) => {
+        logger.error({ error: err.message, customerId }, 'Failed syncing updated sales assignment to Sheets');
+      });
+    }
 
     return updated;
   }
 
   /**
-   * Get paginated customer list
+   * Get paginated customer list (Defaults to only returning customers who provided phone numbers)
    */
   public static async getCustomers(params: {
     page?: number;
@@ -291,14 +303,17 @@ export class CustomerService {
     const limit = Math.min(100, Math.max(1, params.limit || 20));
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    // By default: Only show customers with verified phone numbers
+    const where: any = {
+      primaryPhone: { not: null },
+    };
+
+    if (params.hasPhone === false) {
+      delete where.primaryPhone;
+    }
 
     if (params.platform) {
       where.platform = params.platform.toUpperCase();
-    }
-
-    if (params.hasPhone === true) {
-      where.primaryPhone = { not: null };
     }
 
     if (params.assignedSales) {
@@ -314,14 +329,19 @@ export class CustomerService {
     }
 
     if (params.search) {
-      where.OR = [
-        { name: { contains: params.search } },
-        { primaryPhone: { contains: params.search } },
-        { pancakeCustomerId: { contains: params.search } },
-        { interestedVehicle: { contains: params.search } },
-        { assignedSales: { contains: params.search } },
-        { leadSource: { contains: params.search } },
-        { notes: { contains: params.search } },
+      where.AND = [
+        { primaryPhone: { not: null } },
+        {
+          OR: [
+            { name: { contains: params.search } },
+            { primaryPhone: { contains: params.search } },
+            { pancakeCustomerId: { contains: params.search } },
+            { interestedVehicle: { contains: params.search } },
+            { assignedSales: { contains: params.search } },
+            { leadSource: { contains: params.search } },
+            { notes: { contains: params.search } },
+          ],
+        },
       ];
     }
 
@@ -351,11 +371,10 @@ export class CustomerService {
   }
 
   /**
-   * Get CRM summary statistics
+   * Get CRM summary statistics (Only counts leads with phone numbers)
    */
   public static async getStats(): Promise<CustomerStats> {
     const [
-      totalCustomers,
       totalWithPhones,
       totalMessages,
       totalOrders,
@@ -363,22 +382,22 @@ export class CustomerService {
       vehicleCounts,
       salesCounts,
     ] = await Promise.all([
-      prisma.customer.count(),
       prisma.customer.count({ where: { primaryPhone: { not: null } } }),
       prisma.message.count(),
       prisma.order.count(),
       prisma.customer.groupBy({
         by: ['platform'],
+        where: { primaryPhone: { not: null } },
         _count: { platform: true },
       }),
       prisma.customer.groupBy({
         by: ['interestedVehicle'],
-        where: { interestedVehicle: { not: null } },
+        where: { primaryPhone: { not: null }, interestedVehicle: { not: null } },
         _count: { interestedVehicle: true },
       }),
       prisma.customer.groupBy({
         by: ['assignedSales'],
-        where: { assignedSales: { not: null } },
+        where: { primaryPhone: { not: null }, assignedSales: { not: null } },
         _count: { assignedSales: true },
       }),
     ]);
@@ -403,7 +422,7 @@ export class CustomerService {
     }
 
     return {
-      totalCustomers,
+      totalCustomers: totalWithPhones,
       totalWithPhones,
       totalMessages,
       totalOrders,

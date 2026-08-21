@@ -58,9 +58,9 @@
         <div>
           <div class="flex items-center space-x-2">
             <h1 class="font-bold text-lg text-white tracking-tight">Pancake Sales CRM</h1>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">Auto Lead Dispatch</span>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">Auto Phone Extractor</span>
           </div>
-          <p class="text-xs text-slate-400">ระบบสกัดเบอร์ลูกค้า & จัดสรรเคสส่งให้เซลล์</p>
+          <p class="text-xs text-slate-400">บันทึกเฉพาะลูกค้าที่ให้เบอร์โทร & จ่ายงานให้เซลล์</p>
         </div>
       </div>
 
@@ -68,7 +68,7 @@
       <div class="hidden md:flex items-center space-x-3">
         <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs">
           <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span>
-          <span id="db-status-badge">พร้อมรับแชทจาก Pancake</span>
+          <span id="db-status-badge">ระบบกำลังดักจับเบอร์โทรลูกค้า</span>
         </div>
 
         <div class="flex items-center bg-dark-800/90 border border-slate-700/70 rounded-lg px-3 py-1.5 text-xs text-slate-300">
@@ -113,54 +113,54 @@
     <!-- KPI Metric Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       
-      <!-- Metric 1: Total Leads -->
+      <!-- Metric 1: Total Verified Phone Leads -->
       <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs font-medium text-slate-400">ลูกค้าทั้งหมด (Total Leads)</p>
-            <h3 id="stat-total-customers" class="text-2xl font-bold text-white mt-1">0</h3>
-          </div>
-          <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-            <i data-lucide="users" class="w-6 h-6"></i>
-          </div>
-        </div>
-        <div class="mt-3 flex items-center text-xs text-slate-400">
-          <span class="text-blue-400 font-medium mr-1.5 flex items-center"><i data-lucide="arrow-up-right" class="w-3.5 h-3.5 mr-0.5"></i> 100%</span>
-          <span>จาก Pancake Chat & POS</span>
-        </div>
-      </div>
-
-      <!-- Metric 2: Leads with Verified Phone Numbers -->
-      <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs font-medium text-slate-400">ลูกค้าที่ได้เบอร์โทรแล้ว</p>
-            <h3 id="stat-total-phones" class="text-2xl font-bold text-white mt-1">0</h3>
+            <p class="text-xs font-medium text-slate-400">ลูกค้าที่ได้เบอร์โทรแล้ว (Leads)</p>
+            <h3 id="stat-total-phones" class="text-2xl font-bold text-emerald-400 mt-1">0</h3>
           </div>
           <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
             <i data-lucide="phone-call" class="w-6 h-6"></i>
           </div>
         </div>
         <div class="mt-3 flex items-center text-xs text-slate-400">
-          <span id="stat-phone-rate" class="text-emerald-400 font-medium mr-1.5">0%</span>
-          <span>อัตราการได้เบอร์โทร</span>
+          <span class="text-emerald-400 font-medium mr-1.5 flex items-center"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 mr-0.5"></i> ตรวจสอบเบอร์แล้ว</span>
+          <span>นับเฉพาะคนที่ให้เบอร์</span>
         </div>
       </div>
 
-      <!-- Metric 3: Leads Assigned to Sales -->
+      <!-- Metric 2: Assigned Leads -->
       <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs font-medium text-slate-400">เคสที่ส่งให้เซลล์แล้ว</p>
+            <p class="text-xs font-medium text-slate-400">เคสที่จ่ายงานให้เซลล์แล้ว</p>
             <h3 id="stat-total-assigned" class="text-2xl font-bold text-white mt-1">0</h3>
           </div>
-          <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+          <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
             <i data-lucide="user-check" class="w-6 h-6"></i>
           </div>
         </div>
         <div class="mt-3 flex items-center text-xs text-slate-400">
-          <span class="text-amber-400 font-medium mr-1.5">8 เซลล์ในทีม</span>
-          <span>จัดสรรเคสอัตโนมัติ</span>
+          <span class="text-blue-400 font-medium mr-1.5">8 เซลล์ในทีม</span>
+          <span>พร้อมส่งใน LINE</span>
+        </div>
+      </div>
+
+      <!-- Metric 3: Pending Assignment -->
+      <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400">เคสรอเลือกเซลล์</p>
+            <h3 id="stat-pending-assigned" class="text-2xl font-bold text-amber-400 mt-1">0</h3>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <i data-lucide="clock" class="w-6 h-6"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center text-xs text-slate-400">
+          <span class="text-amber-400 font-medium mr-1.5">Action required</span>
+          <span>แอดมินเลือกเซลล์รับเคส</span>
         </div>
       </div>
 
@@ -168,16 +168,16 @@
       <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs font-medium text-slate-400">ข้อความแชทที่สแกนแล้ว</p>
-            <h3 id="stat-total-messages" class="text-2xl font-bold text-white mt-1">0</h3>
+            <p class="text-xs font-medium text-slate-400">ข้อความที่สแกนหาเบอร์</p>
+            <h3 id="stat-total-messages" class="text-2xl font-bold text-purple-400 mt-1">0</h3>
           </div>
           <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
             <i data-lucide="message-square-text" class="w-6 h-6"></i>
           </div>
         </div>
         <div class="mt-3 flex items-center text-xs text-slate-400">
-          <span class="text-purple-400 font-medium mr-1.5">Auto-Regex</span>
-          <span>ตรวจจับรถ & เบอร์อัตโนมัติ</span>
+          <span class="text-purple-400 font-medium mr-1.5">AI & Regex</span>
+          <span>สแกนตรวจจับอัตโนมัติ</span>
         </div>
       </div>
 
@@ -191,7 +191,7 @@
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-sm font-semibold text-slate-200 flex items-center">
             <i data-lucide="truck" class="w-4 h-4 mr-2 text-brand-400"></i>
-            สัดส่วนรถที่ลูกค้าสนใจ
+            สัดส่วนรถที่ลูกค้าสนใจ (มีเบอร์โทร)
           </h3>
           <span class="text-xs text-slate-400">หัวลาก/ตู้10/หาง/ดั้ม</span>
         </div>
@@ -273,7 +273,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center gap-3">
           <h2 class="text-base font-bold text-white flex items-center">
             <i data-lucide="table" class="w-5 h-5 mr-2 text-brand-500"></i>
-            ตารางรับลูกค้า & จ่ายงานเซลล์
+            ตารางรับเคสลูกค้า (เฉพาะคนที่มีเบอร์โทร)
           </h2>
 
           <!-- Source Filter Chips -->
@@ -286,15 +286,9 @@
           </div>
         </div>
 
-        <!-- Right: Search Bar & Has Phone Toggle -->
+        <!-- Right: Search Bar & Refresh -->
         <div class="flex items-center space-x-3">
           
-          <!-- Has Phone Toggle -->
-          <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer select-none">
-            <input type="checkbox" id="filter-has-phone" class="rounded border-slate-700 bg-dark-900 text-brand-500 focus:ring-0 focus:ring-offset-0" />
-            <span>เฉพาะที่มีเบอร์</span>
-          </label>
-
           <!-- Search Input with Clear Button -->
           <div class="relative w-full sm:w-64">
             <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
