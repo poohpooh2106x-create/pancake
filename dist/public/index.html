@@ -612,7 +612,7 @@
   <!-- Application Logic (Self-Contained Inline Execution) -->
   <script>
 // Local Storage Persistent Key
-const STORAGE_KEY = 'kp_crm_customers_permanent_v3';
+const STORAGE_KEY = 'kp_crm_customers_permanent_v4';
 
 // Preset Sales Team (8 Sales members)
 const SALES_OPTIONS = [
@@ -723,6 +723,25 @@ const state = {
 // -------------------------------------------------------------
 
 const DEFAULT_INITIAL_LEADS = [
+  {
+    id: 'lead_real_000',
+    pancakeCustomerId: 'fb_porpor_1613',
+    name: 'Porpor Prirapanpanit',
+    primaryPhone: '0623929446',
+    interestedVehicle: 'หางก้าง',
+    assignedSales: 'เฟิร์น',
+    leadSource: 'FB เคพีศรีราชา',
+    receivedDate: '21/8/2026',
+    receivedTime: '16:13',
+    notes: 'ขอซื้อได้ไหม หางก้าง3เพลา 0623929446',
+    lastContactAt: new Date().toISOString(),
+    phones: [{ phoneNumber: '0623929446', carrier: 'AIS' }],
+    messages: [
+      { id: 'm0_1', senderType: 'CUSTOMER', text: 'ขอซื้อได้ไหม', sentAt: new Date().toISOString() },
+      { id: 'm0_2', senderType: 'CUSTOMER', text: 'หางก้าง3เพลา', sentAt: new Date().toISOString() },
+      { id: 'm0_3', senderType: 'CUSTOMER', text: '0623929446', extractedPhones: '["0623929446"]', sentAt: new Date().toISOString() },
+    ],
+  },
   {
     id: 'lead_real_001',
     pancakeCustomerId: '24266314679620841',
