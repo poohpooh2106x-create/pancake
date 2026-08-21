@@ -34,13 +34,13 @@ export function createApp(): Application {
   // Body Parsing with Raw Buffer Retention for HMAC Verification
   app.use(
     express.json({
-      limit: '10mb',
+      limit: '20mb',
       verify: (req: AuthenticatedWebhookRequest, _res, buf) => {
         req.rawBody = buf;
       },
     })
   );
-  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
   // Request Logging
   app.use(requestLoggerMiddleware);
@@ -49,19 +49,25 @@ export function createApp(): Application {
   const publicDir = path.join(__dirname, 'public');
   app.use(express.static(publicDir));
 
-  // REST API Routes (Support both /api/path and /path for serverless function compatibility)
+  // REST API Routes (Multi-path mount for 100% serverless routing compatibility)
   app.use('/api/health', healthRoutes);
   app.use('/health', healthRoutes);
 
   app.use('/api/webhooks', webhookRoutes);
   app.use('/webhooks', webhookRoutes);
+  app.use('/api', webhookRoutes); // Catches /api/pancake, /api/logs
 
   app.use('/api/customers', customerRoutes);
   app.use('/customers', customerRoutes);
 
   // Single Page App Fallback for non-API routes
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/webhooks') || req.path.startsWith('/health')) {
+    if (
+      req.path.startsWith('/api') ||
+      req.path.startsWith('/webhooks') ||
+      req.path.startsWith('/health') ||
+      req.path.startsWith('/customers')
+    ) {
       return next();
     }
     res.sendFile(path.join(publicDir, 'index.html'), (err) => {
